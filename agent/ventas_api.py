@@ -178,8 +178,8 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
     while True:
         data = await _ml_get("/orders/search", {
             "seller": ML_SELLER_ID,
-            "date_from": date_from,
-            "date_to": date_to,
+            "order.date_closed.from": date_from,
+            "order.date_closed.to": date_to,
             "sort": "date_asc",
             "limit": LIMIT,
             "offset": offset,
