@@ -202,14 +202,12 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
         if order.get("status") == "cancelled":
             continue
         ordenes += 1
+        total += float(order.get("total_amount", 0))
         for item in order.get("order_items", []):
             titulo = item.get("item", {}).get("title", "Sin nombre")
             qty = item.get("quantity", 1)
-            # gross_price = precio de lista (= "Ventas brutas" del dashboard ML)
-            # unit_price  = precio que pagó el comprador (después de descuentos ML)
-            gross = float(item.get("gross_price") or item.get("unit_price", 0))
-            total += gross * qty
-            prod_agg[titulo]["ingresos"] += gross * qty
+            price = float(item.get("unit_price", 0)) * qty
+            prod_agg[titulo]["ingresos"] += price
             prod_agg[titulo]["unidades"] += qty
             unidades += qty
 

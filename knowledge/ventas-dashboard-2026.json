@@ -405,37 +405,37 @@
     "2026-06": {
       "label": "Junio 2026 (parcial — al 7 de junio, ventas brutas ML)",
       "mercadolibre": {
-        "total": 284008,
-        "ordenes": 278,
-        "unidades": 306,
-        "ticket_promedio": 1022,
-        "skus": 36,
+        "total": 286135,
+        "ordenes": 282,
+        "unidades": 310,
+        "ticket_promedio": 1015,
+        "skus": 49,
         "nota": "al 7 de junio",
         "top_productos": [
           {
             "producto": "Soldadora Inverter Arc300DV 300A",
-            "ingresos": 48596.4,
+            "ingresos": 53996,
             "unidades": 4
           },
           {
             "producto": "Careta Electrónica Free450 Sombra 11",
-            "ingresos": 36912.4,
-            "unidades": 70
+            "ingresos": 50400,
+            "unidades": 72
           },
           {
             "producto": "Soldadora Inversora Arc200 200A",
-            "ingresos": 25195.8,
+            "ingresos": 29995,
             "unidades": 5
           },
           {
             "producto": "Pistola Clavos Maraga CN70",
-            "ingresos": 16737.3,
+            "ingresos": 29885,
             "unidades": 4
           },
           {
-            "producto": "Clavos Pistola Neumática 2\" 9000pz",
-            "ingresos": 14596.86,
-            "unidades": 19
+            "producto": "Careta Para Soldar Sombra Ajustable 9-13",
+            "ingresos": 21080,
+            "unidades": 16
           }
         ]
       },
@@ -510,7 +510,7 @@
           }
         ]
       },
-      "total_consolidado": 327814.96
+      "total_consolidado": 329941.96
     }
   },
   "resumen_2026": {
