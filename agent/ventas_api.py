@@ -178,8 +178,8 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
     while True:
         data = await _ml_get("/orders/search", {
             "seller": ML_SELLER_ID,
-            "order.date_closed.from": date_from,
-            "order.date_closed.to": date_to,
+            "order.date_created.from": date_from,
+            "order.date_created.to": date_to,
             "sort": "date_asc",
             "limit": LIMIT,
             "offset": offset,
@@ -241,17 +241,42 @@ def set_amazon_cache(mes: str, data: dict) -> None:
                 f"total={data.get('total')}, ordenes={data.get('ordenes')}")
 
 
+def _normalize_amazon(data: dict) -> dict:
+    """Normaliza el objeto Amazon a las claves que espera el dashboard."""
+    if not data:
+        return data
+    out = dict(data)
+    # ticket_promedio → ticketPromedio
+    if "ticket_promedio" in out and "ticketPromedio" not in out:
+        out["ticketPromedio"] = out.pop("ticket_promedio")
+    # top_productos → top (con campo titulo en lugar de producto)
+    if "top_productos" in out and "top" not in out:
+        out["top"] = [
+            {"titulo": p.get("producto", p.get("titulo", "")),
+             "ingresos": p.get("ingresos", 0),
+             "unidades": p.get("unidades", 0)}
+            for p in out.pop("top_productos")
+        ]
+    # nota → parcialLabel
+    if "nota" in out and "parcialLabel" not in out:
+        out["parcialLabel"] = out.pop("nota")
+    if "parcialLabel" in out:
+        out["parcial"] = True
+    return out
+
+
 def get_amazon_cached(mes: str) -> Optional[dict]:
     """Devuelve datos de Amazon: memoria primero, luego knowledge JSON."""
     # 1) Caché en memoria (actualizado por cron/push)
     if mes in _amazon_mem_cache:
-        return _amazon_mem_cache[mes]
+        return _normalize_amazon(_amazon_mem_cache[mes])
     # 2) Fallback: archivo JSON (actualizado por cron vía git)
     try:
         ruta = os.path.join("knowledge", "ventas-dashboard-2026.json")
         with open(ruta, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return data.get("datos_por_mes", {}).get(mes, {}).get("amazon")
+        raw = data.get("datos_por_mes", {}).get(mes, {}).get("amazon")
+        return _normalize_amazon(raw)
     except Exception as e:
         logger.warning(f"No se pudo cargar Amazon cache de archivo: {e}")
         return None
