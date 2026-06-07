@@ -403,14 +403,14 @@
       "total_consolidado": 1235214.64
     },
     "2026-06": {
-      "label": "Junio 2026 (parcial — al 7 de junio)",
+      "label": "Junio 2026 (parcial — al 7 de junio, ventas brutas ML)",
       "mercadolibre": {
-        "total": 256777.37,
-        "ordenes": 264,
-        "unidades": 290,
-        "ticket_promedio": 973,
+        "total": 284008,
+        "ordenes": 278,
+        "unidades": 306,
+        "ticket_promedio": 1022,
         "skus": 36,
-        "nota": "al 6 de junio",
+        "nota": "al 7 de junio",
         "top_productos": [
           {
             "producto": "Soldadora Inverter Arc300DV 300A",
@@ -419,8 +419,8 @@
           },
           {
             "producto": "Careta Electrónica Free450 Sombra 11",
-            "ingresos": 36385.08,
-            "unidades": 69
+            "ingresos": 36912.4,
+            "unidades": 70
           },
           {
             "producto": "Soldadora Inversora Arc200 200A",
@@ -510,7 +510,7 @@
           }
         ]
       },
-      "total_consolidado": 300584.33
+      "total_consolidado": 327814.96
     }
   },
   "resumen_2026": {
