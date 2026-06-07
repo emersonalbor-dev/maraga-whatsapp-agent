@@ -103,6 +103,40 @@ async def ventas_mes_actual():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/chat")
+async def chat_directo(request: Request):
+    """
+    Chat directo con Mara desde el dashboard de directores.
+    No requiere WhatsApp — llama al brain directamente.
+    """
+    try:
+        body = await request.json()
+        mensaje = (body.get("mensaje") or "").strip()
+        usuario = (body.get("usuario") or "director-dashboard").strip()
+        if not mensaje:
+            raise HTTPException(status_code=400, detail="Campo 'mensaje' requerido")
+
+        # Historial de la sesión del director (ID separado del canal WhatsApp)
+        session_id = f"dashboard-{usuario}"
+        historial = await obtener_historial(session_id)
+
+        # Generar respuesta con Mara
+        respuesta = await generar_respuesta(mensaje, historial)
+
+        # Guardar en memoria para contexto continuo
+        await guardar_mensaje(session_id, "user", mensaje)
+        await guardar_mensaje(session_id, "assistant", respuesta)
+
+        logger.info(f"💬 Dashboard [{usuario}]: {mensaje[:60]}...")
+        return JSONResponse(content={"respuesta": respuesta, "usuario": usuario})
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en /api/chat: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/webhook")
 async def webhook_verificacion(request: Request):
     """Verificación GET del webhook (Meta Cloud API lo requiere)."""
