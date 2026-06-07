@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Text, DateTime, select, Integer
+from sqlalchemy import String, Text, DateTime, select, Integer, func, not_
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -67,6 +67,42 @@ async def obtener_historial(telefono: str, limite: int = 20) -> list[dict]:
         mensajes = result.scalars().all()
         mensajes.reverse()  # orden cronológico
         return [{"role": m.role, "content": m.content} for m in mensajes]
+
+
+async def obtener_conversaciones_recientes(limite: int = 20) -> list[dict]:
+    """
+    Retorna la última conversación de cada contacto de WhatsApp,
+    ordenadas por recencia. Excluye sesiones del dashboard.
+    """
+    async with async_session() as session:
+        # Subquery: ID del último mensaje por teléfono
+        sub = (
+            select(
+                Mensaje.telefono,
+                func.max(Mensaje.id).label("last_id"),
+            )
+            .where(not_(Mensaje.telefono.like("dashboard-%")))
+            .group_by(Mensaje.telefono)
+            .subquery()
+        )
+        stmt = (
+            select(Mensaje)
+            .join(sub, Mensaje.id == sub.c.last_id)
+            .order_by(Mensaje.timestamp.desc())
+            .limit(limite)
+        )
+        result = await session.execute(stmt)
+        rows = result.scalars().all()
+        return [
+            {
+                "telefono": m.telefono,
+                "ultimo_mensaje": m.content[:120],
+                "role": m.role,
+                "timestamp": m.timestamp.isoformat() + "Z",
+                "pendiente": m.role == "user",
+            }
+            for m in rows
+        ]
 
 
 async def limpiar_historial(telefono: str):

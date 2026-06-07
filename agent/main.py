@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from agent.brain import generar_respuesta
-from agent.memory import inicializar_db, guardar_mensaje, obtener_historial
+from agent.memory import inicializar_db, guardar_mensaje, obtener_historial, obtener_conversaciones_recientes
 from agent.providers import obtener_proveedor
 from agent.ventas_api import get_ventas_mes_actual, set_amazon_cache
 
@@ -135,6 +135,21 @@ async def chat_directo(request: Request):
     except Exception as e:
         logger.error(f"Error en /api/chat: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/chats/whatsapp")
+async def chats_whatsapp():
+    """
+    Retorna conversaciones recientes de WhatsApp para el dashboard de directores.
+    Muestra último mensaje de cada contacto, ordenado por recencia.
+    """
+    try:
+        chats = await obtener_conversaciones_recientes(limite=20)
+        pendientes = sum(1 for c in chats if c["pendiente"])
+        return JSONResponse(content={"chats": chats, "total": len(chats), "pendientes": pendientes})
+    except Exception as e:
+        logger.error(f"Error en /api/chats/whatsapp: {e}", exc_info=True)
+        return JSONResponse(content={"chats": [], "total": 0, "pendientes": 0})
 
 
 @app.get("/webhook")
