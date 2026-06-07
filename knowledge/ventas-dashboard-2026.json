@@ -6,23 +6,71 @@
     "2026-01": {
       "label": "Enero 2026",
       "mercadolibre": {
-        "total": 1010045.84, "ordenes": 1127, "unidades": 1253, "ticket_promedio": 896, "skus": 58,
+        "total": 1010045.84,
+        "ordenes": 1127,
+        "unidades": 1253,
+        "ticket_promedio": 896,
+        "skus": 58,
         "top_productos": [
-          { "producto": "Careta Electrónica Free450 Sombra 11", "ingresos": 239712.90, "unidades": 465 },
-          { "producto": "Máquina Soldar Arc160 160A", "ingresos": 170887.14, "unidades": 57 },
-          { "producto": "Disco Diamante Corte Metal 14\"", "ingresos": 82885.60, "unidades": 81 },
-          { "producto": "Cortadora Metal 2400W 14\"", "ingresos": 64726.38, "unidades": 22 },
-          { "producto": "Clavos Pistola 2\" 9000pz", "ingresos": 42979.15, "unidades": 51 }
+          {
+            "producto": "Careta Electrónica Free450 Sombra 11",
+            "ingresos": 239712.9,
+            "unidades": 465
+          },
+          {
+            "producto": "Máquina Soldar Arc160 160A",
+            "ingresos": 170887.14,
+            "unidades": 57
+          },
+          {
+            "producto": "Disco Diamante Corte Metal 14\"",
+            "ingresos": 82885.6,
+            "unidades": 81
+          },
+          {
+            "producto": "Cortadora Metal 2400W 14\"",
+            "ingresos": 64726.38,
+            "unidades": 22
+          },
+          {
+            "producto": "Clavos Pistola 2\" 9000pz",
+            "ingresos": 42979.15,
+            "unidades": 51
+          }
         ]
       },
       "walmart": {
-        "total": 65505, "ordenes": 35, "unidades": 44, "ticket_promedio": 1872, "skus": 17,
+        "total": 65505,
+        "ordenes": 35,
+        "unidades": 44,
+        "ticket_promedio": 1872,
+        "skus": 17,
         "top_productos": [
-          { "producto": "Pistola Clavos MARAGA CN70 1-3/4 a 2-3/4\"", "ingresos": 32688, "unidades": 12 },
-          { "producto": "Cortadora Metales 2400W + Disco Diamante 14\" (Kit)", "ingresos": 9997, "unidades": 3 },
-          { "producto": "Soldadora 160A MARAGA + Esmeriladora 850W", "ingresos": 5998, "unidades": 2 },
-          { "producto": "Clavo en Rollo 2-1/4\" 9000pz", "ingresos": 3680, "unidades": 4 },
-          { "producto": "Soldadora Inversora 200A 127/220V", "ingresos": 2339, "unidades": 1 }
+          {
+            "producto": "Pistola Clavos MARAGA CN70 1-3/4 a 2-3/4\"",
+            "ingresos": 32688,
+            "unidades": 12
+          },
+          {
+            "producto": "Cortadora Metales 2400W + Disco Diamante 14\" (Kit)",
+            "ingresos": 9997,
+            "unidades": 3
+          },
+          {
+            "producto": "Soldadora 160A MARAGA + Esmeriladora 850W",
+            "ingresos": 5998,
+            "unidades": 2
+          },
+          {
+            "producto": "Clavo en Rollo 2-1/4\" 9000pz",
+            "ingresos": 3680,
+            "unidades": 4
+          },
+          {
+            "producto": "Soldadora Inversora 200A 127/220V",
+            "ingresos": 2339,
+            "unidades": 1
+          }
         ]
       },
       "amazon": null,
@@ -31,23 +79,71 @@
     "2026-02": {
       "label": "Febrero 2026",
       "mercadolibre": {
-        "total": 1257004.94, "ordenes": 1229, "unidades": 1369, "ticket_promedio": 1023, "skus": 64,
+        "total": 1257004.94,
+        "ordenes": 1229,
+        "unidades": 1369,
+        "ticket_promedio": 1023,
+        "skus": 64,
         "top_productos": [
-          { "producto": "Máquina Soldar Arc160 160A", "ingresos": 242513.52, "unidades": 78 },
-          { "producto": "Careta Electrónica Free450 Sombra 11", "ingresos": 100876.00, "unidades": 182 },
-          { "producto": "Disco Diamante Corte Metal 14\"", "ingresos": 97624.18, "unidades": 94 },
-          { "producto": "Soldadura Electrodo 6013 1/8 Maraga 20kg", "ingresos": 67930.30, "unidades": 55 },
-          { "producto": "Clavos Pistola Neumática 2\" 9000pz", "ingresos": 60688.00, "unidades": 72 }
+          {
+            "producto": "Máquina Soldar Arc160 160A",
+            "ingresos": 242513.52,
+            "unidades": 78
+          },
+          {
+            "producto": "Careta Electrónica Free450 Sombra 11",
+            "ingresos": 100876.0,
+            "unidades": 182
+          },
+          {
+            "producto": "Disco Diamante Corte Metal 14\"",
+            "ingresos": 97624.18,
+            "unidades": 94
+          },
+          {
+            "producto": "Soldadura Electrodo 6013 1/8 Maraga 20kg",
+            "ingresos": 67930.3,
+            "unidades": 55
+          },
+          {
+            "producto": "Clavos Pistola Neumática 2\" 9000pz",
+            "ingresos": 60688.0,
+            "unidades": 72
+          }
         ]
       },
       "walmart": {
-        "total": 19662, "ordenes": 20, "unidades": 22, "ticket_promedio": 983, "skus": 13,
+        "total": 19662,
+        "ordenes": 20,
+        "unidades": 22,
+        "ticket_promedio": 983,
+        "skus": 13,
         "top_productos": [
-          { "producto": "Soldadora Inversora MARAGA 200A ARC200 110/220V", "ingresos": 4999, "unidades": 1 },
-          { "producto": "Clavo en Rollo 2\" 9000pz", "ingresos": 3172, "unidades": 4 },
-          { "producto": "Soldadora Inversora 200A 127/220V", "ingresos": 2339, "unidades": 1 },
-          { "producto": "Clavo en Rollo 2-1/4\" 9000pz", "ingresos": 1920, "unidades": 2 },
-          { "producto": "Esmeriladora Angular 800W 4-1/2\"", "ingresos": 1585, "unidades": 5 }
+          {
+            "producto": "Soldadora Inversora MARAGA 200A ARC200 110/220V",
+            "ingresos": 4999,
+            "unidades": 1
+          },
+          {
+            "producto": "Clavo en Rollo 2\" 9000pz",
+            "ingresos": 3172,
+            "unidades": 4
+          },
+          {
+            "producto": "Soldadora Inversora 200A 127/220V",
+            "ingresos": 2339,
+            "unidades": 1
+          },
+          {
+            "producto": "Clavo en Rollo 2-1/4\" 9000pz",
+            "ingresos": 1920,
+            "unidades": 2
+          },
+          {
+            "producto": "Esmeriladora Angular 800W 4-1/2\"",
+            "ingresos": 1585,
+            "unidades": 5
+          }
         ]
       },
       "amazon": null,
@@ -56,23 +152,71 @@
     "2026-03": {
       "label": "Marzo 2026",
       "mercadolibre": {
-        "total": 1051857.93, "ordenes": 982, "unidades": 1147, "ticket_promedio": 1071, "skus": 54,
+        "total": 1051857.93,
+        "ordenes": 982,
+        "unidades": 1147,
+        "ticket_promedio": 1071,
+        "skus": 54,
         "top_productos": [
-          { "producto": "Máquina Soldar Arc160 160A", "ingresos": 199630.08, "unidades": 64 },
-          { "producto": "Careta Electrónica Free450 Sombra 11", "ingresos": 132870.00, "unidades": 233 },
-          { "producto": "Clavos Pistola Neumática 2\" 9000pz", "ingresos": 72573.00, "unidades": 87 },
-          { "producto": "Soldadura Electrodo 6013 1/8 Maraga 20kg", "ingresos": 56329.30, "unidades": 46 },
-          { "producto": "Soldadura 6013 1/8 Maraga 5kg", "ingresos": 55286.00, "unidades": 154 }
+          {
+            "producto": "Máquina Soldar Arc160 160A",
+            "ingresos": 199630.08,
+            "unidades": 64
+          },
+          {
+            "producto": "Careta Electrónica Free450 Sombra 11",
+            "ingresos": 132870.0,
+            "unidades": 233
+          },
+          {
+            "producto": "Clavos Pistola Neumática 2\" 9000pz",
+            "ingresos": 72573.0,
+            "unidades": 87
+          },
+          {
+            "producto": "Soldadura Electrodo 6013 1/8 Maraga 20kg",
+            "ingresos": 56329.3,
+            "unidades": 46
+          },
+          {
+            "producto": "Soldadura 6013 1/8 Maraga 5kg",
+            "ingresos": 55286.0,
+            "unidades": 154
+          }
         ]
       },
       "walmart": {
-        "total": 27983, "ordenes": 24, "unidades": 31, "ticket_promedio": 1166, "skus": 14,
+        "total": 27983,
+        "ordenes": 24,
+        "unidades": 31,
+        "ticket_promedio": 1166,
+        "skus": 14,
         "top_productos": [
-          { "producto": "Clavo en Rollo MARAGA 2\" 9000pz", "ingresos": 5181, "unidades": 7 },
-          { "producto": "Clavadora Neumática MARAGA COIL55", "ingresos": 4489, "unidades": 1 },
-          { "producto": "Cortadora Metales 2400W + Disco Diamante 14\" (Kit)", "ingresos": 3149, "unidades": 1 },
-          { "producto": "Disco Diamante 14\" y 4-1/2\" Corte Metal", "ingresos": 2720, "unidades": 2 },
-          { "producto": "Soldadora Inversora 200A 127/220V", "ingresos": 2599, "unidades": 1 }
+          {
+            "producto": "Clavo en Rollo MARAGA 2\" 9000pz",
+            "ingresos": 5181,
+            "unidades": 7
+          },
+          {
+            "producto": "Clavadora Neumática MARAGA COIL55",
+            "ingresos": 4489,
+            "unidades": 1
+          },
+          {
+            "producto": "Cortadora Metales 2400W + Disco Diamante 14\" (Kit)",
+            "ingresos": 3149,
+            "unidades": 1
+          },
+          {
+            "producto": "Disco Diamante 14\" y 4-1/2\" Corte Metal",
+            "ingresos": 2720,
+            "unidades": 2
+          },
+          {
+            "producto": "Soldadora Inversora 200A 127/220V",
+            "ingresos": 2599,
+            "unidades": 1
+          }
         ]
       },
       "amazon": null,
@@ -81,23 +225,71 @@
     "2026-04": {
       "label": "Abril 2026",
       "mercadolibre": {
-        "total": 1066916.27, "ordenes": 871, "unidades": 997, "ticket_promedio": 1225, "skus": 49,
+        "total": 1066916.27,
+        "ordenes": 871,
+        "unidades": 997,
+        "ticket_promedio": 1225,
+        "skus": 49,
         "top_productos": [
-          { "producto": "Máquina Soldar Arc160 160A", "ingresos": 136864.38, "unidades": 40 },
-          { "producto": "Clavadora Pallets Bostitch 2-3/4\"", "ingresos": 122766.00, "unidades": 21 },
-          { "producto": "Careta Electrónica Free450 Sombra 11", "ingresos": 95272.50, "unidades": 163 },
-          { "producto": "Clavos Pistola Neumática 2½\" 9000pz", "ingresos": 63829.00, "unidades": 71 },
-          { "producto": "Pistola Clavos Maraga CN70", "ingresos": 55801.00, "unidades": 12 }
+          {
+            "producto": "Máquina Soldar Arc160 160A",
+            "ingresos": 136864.38,
+            "unidades": 40
+          },
+          {
+            "producto": "Clavadora Pallets Bostitch 2-3/4\"",
+            "ingresos": 122766.0,
+            "unidades": 21
+          },
+          {
+            "producto": "Careta Electrónica Free450 Sombra 11",
+            "ingresos": 95272.5,
+            "unidades": 163
+          },
+          {
+            "producto": "Clavos Pistola Neumática 2½\" 9000pz",
+            "ingresos": 63829.0,
+            "unidades": 71
+          },
+          {
+            "producto": "Pistola Clavos Maraga CN70",
+            "ingresos": 55801.0,
+            "unidades": 12
+          }
         ]
       },
       "walmart": {
-        "total": 18604, "ordenes": 9, "unidades": 9, "ticket_promedio": 2067, "skus": 9,
+        "total": 18604,
+        "ordenes": 9,
+        "unidades": 9,
+        "ticket_promedio": 2067,
+        "skus": 9,
         "top_productos": [
-          { "producto": "Soldadora Inversora MARAGA 220A 220V", "ingresos": 7499, "unidades": 1 },
-          { "producto": "Soldadora Inversora MARAGA 200A ARC200 110/220V", "ingresos": 6499, "unidades": 1 },
-          { "producto": "Clavo en Rollo MARAGA 3\" 5400pz", "ingresos": 1044, "unidades": 1 },
-          { "producto": "Taladro Rotomartillo 550W Black+Decker", "ingresos": 899, "unidades": 1 },
-          { "producto": "Sierra Cinta Master Band 44-7/8\" 10/14 Dpp", "ingresos": 753, "unidades": 1 }
+          {
+            "producto": "Soldadora Inversora MARAGA 220A 220V",
+            "ingresos": 7499,
+            "unidades": 1
+          },
+          {
+            "producto": "Soldadora Inversora MARAGA 200A ARC200 110/220V",
+            "ingresos": 6499,
+            "unidades": 1
+          },
+          {
+            "producto": "Clavo en Rollo MARAGA 3\" 5400pz",
+            "ingresos": 1044,
+            "unidades": 1
+          },
+          {
+            "producto": "Taladro Rotomartillo 550W Black+Decker",
+            "ingresos": 899,
+            "unidades": 1
+          },
+          {
+            "producto": "Sierra Cinta Master Band 44-7/8\" 10/14 Dpp",
+            "ingresos": 753,
+            "unidades": 1
+          }
         ]
       },
       "amazon": null,
@@ -106,31 +298,106 @@
     "2026-05": {
       "label": "Mayo 2026",
       "mercadolibre": {
-        "total": 972585.42, "ordenes": 907, "unidades": 1052, "ticket_promedio": 1072, "skus": 57,
+        "total": 972585.42,
+        "ordenes": 907,
+        "unidades": 1052,
+        "ticket_promedio": 1072,
+        "skus": 57,
         "top_productos": [
-          { "producto": "Soldadura Electrodo 6013 1/8 Maraga 20kg", "ingresos": 58391.70, "unidades": 46 },
-          { "producto": "Clavos Pistola Neumática Maraga 2\" 9000pz", "ingresos": 57026.69, "unidades": 67 },
-          { "producto": "Disco Diamante Corte Metal 14\"", "ingresos": 47029.40, "unidades": 35 },
-          { "producto": "Clavos Pistola Neumática Maraga 2½\" 9000pz", "ingresos": 46748.00, "unidades": 52 },
-          { "producto": "Cortadora Metal Maraga 2400W 14\"", "ingresos": 44437.53, "unidades": 21 }
+          {
+            "producto": "Soldadura Electrodo 6013 1/8 Maraga 20kg",
+            "ingresos": 58391.7,
+            "unidades": 46
+          },
+          {
+            "producto": "Clavos Pistola Neumática Maraga 2\" 9000pz",
+            "ingresos": 57026.69,
+            "unidades": 67
+          },
+          {
+            "producto": "Disco Diamante Corte Metal 14\"",
+            "ingresos": 47029.4,
+            "unidades": 35
+          },
+          {
+            "producto": "Clavos Pistola Neumática Maraga 2½\" 9000pz",
+            "ingresos": 46748.0,
+            "unidades": 52
+          },
+          {
+            "producto": "Cortadora Metal Maraga 2400W 14\"",
+            "ingresos": 44437.53,
+            "unidades": 21
+          }
         ]
       },
       "walmart": {
-        "total": 260984.95, "ordenes": 70, "unidades": 114, "ticket_promedio": 3728, "skus": 11,
+        "total": 260984.95,
+        "ordenes": 70,
+        "unidades": 114,
+        "ticket_promedio": 3728,
+        "skus": 11,
         "top_productos": [
-          { "producto": "Pistola Clavos MARAGA CN70", "ingresos": 87962, "unidades": 38 },
-          { "producto": "Ref. Semisintético 7030 D 208 Litros Maraga", "ingresos": 41214.8, "unidades": 1 },
-          { "producto": "Soldadora Inversora 200A 127/220V", "ingresos": 37572, "unidades": 18 },
-          { "producto": "Soldadora Inversora MARAGA 200A ARC200 110/220V", "ingresos": 31322, "unidades": 8 },
-          { "producto": "Cortadora de Metales 2400W + Disco Diamante 14\"", "ingresos": 28088, "unidades": 12 }
+          {
+            "producto": "Pistola Clavos MARAGA CN70",
+            "ingresos": 87962,
+            "unidades": 38
+          },
+          {
+            "producto": "Ref. Semisintético 7030 D 208 Litros Maraga",
+            "ingresos": 41214.8,
+            "unidades": 1
+          },
+          {
+            "producto": "Soldadora Inversora 200A 127/220V",
+            "ingresos": 37572,
+            "unidades": 18
+          },
+          {
+            "producto": "Soldadora Inversora MARAGA 200A ARC200 110/220V",
+            "ingresos": 31322,
+            "unidades": 8
+          },
+          {
+            "producto": "Cortadora de Metales 2400W + Disco Diamante 14\"",
+            "ingresos": 28088,
+            "unidades": 12
+          }
         ]
       },
       "amazon": {
-        "total": 1644.27, "ordenes": 6, "unidades": 6, "ticket_promedio": 274, "skus": 2,
-        "nota": "datos parciales",
+        "total": 1644.27,
+        "ordenes": 6,
+        "unidades": 6,
+        "ticket_promedio": 274,
+        "currency": "MXN",
+        "skus": 5,
         "top_productos": [
-          { "producto": "Esmeriladora 4-1/2 Pulgadas 800W", "ingresos": 449 },
-          { "producto": "Electrodo Soldadura 6013 1/8\" 1kg", "ingresos": 70 }
+          {
+            "producto": "Hacksaw Frame 12\" Lenox",
+            "ingresos": 480,
+            "unidades": 1
+          },
+          {
+            "producto": "Esmeriladora 4-1/2 Pulgadas 800W",
+            "ingresos": 449,
+            "unidades": 1
+          },
+          {
+            "producto": "Refrigerante Sintetico 3500 Nd 1L",
+            "ingresos": 393,
+            "unidades": 2
+          },
+          {
+            "producto": "Microalambre Soldar E71TGS-30 0.030\" 3Kg",
+            "ingresos": 204,
+            "unidades": 1
+          },
+          {
+            "producto": "Electrodo Soldadura 6013 1/8\" 1kg",
+            "ingresos": 70,
+            "unidades": 1
+          }
         ]
       },
       "total_consolidado": 1235214.64
@@ -138,36 +405,109 @@
     "2026-06": {
       "label": "Junio 2026 (parcial — al 7 de junio)",
       "mercadolibre": {
-        "total": 256777.37, "ordenes": 264, "unidades": 290, "ticket_promedio": 973, "skus": 36,
+        "total": 256777.37,
+        "ordenes": 264,
+        "unidades": 290,
+        "ticket_promedio": 973,
+        "skus": 36,
         "nota": "al 6 de junio",
         "top_productos": [
-          { "producto": "Soldadora Inverter Arc300DV 300A", "ingresos": 48596.40, "unidades": 4 },
-          { "producto": "Careta Electrónica Free450 Sombra 11", "ingresos": 36385.08, "unidades": 69 },
-          { "producto": "Soldadora Inversora Arc200 200A", "ingresos": 25195.80, "unidades": 5 },
-          { "producto": "Pistola Clavos Maraga CN70", "ingresos": 16737.30, "unidades": 4 },
-          { "producto": "Clavos Pistola Neumática 2\" 9000pz", "ingresos": 14596.86, "unidades": 19 }
+          {
+            "producto": "Soldadora Inverter Arc300DV 300A",
+            "ingresos": 48596.4,
+            "unidades": 4
+          },
+          {
+            "producto": "Careta Electrónica Free450 Sombra 11",
+            "ingresos": 36385.08,
+            "unidades": 69
+          },
+          {
+            "producto": "Soldadora Inversora Arc200 200A",
+            "ingresos": 25195.8,
+            "unidades": 5
+          },
+          {
+            "producto": "Pistola Clavos Maraga CN70",
+            "ingresos": 16737.3,
+            "unidades": 4
+          },
+          {
+            "producto": "Clavos Pistola Neumática 2\" 9000pz",
+            "ingresos": 14596.86,
+            "unidades": 19
+          }
         ]
       },
       "walmart": {
-        "total": 14461.44, "ordenes": 9, "unidades": 11, "ticket_promedio": 1607, "skus": 7,
+        "total": 14461.44,
+        "ordenes": 9,
+        "unidades": 11,
+        "ticket_promedio": 1607,
+        "skus": 7,
         "nota": "al 6 de junio",
         "top_productos": [
-          { "producto": "Soldadora Inversora MARAGA 200A ARC200 110/220V", "ingresos": 6499, "unidades": 1 },
-          { "producto": "Cortadora de Metales 2400W + Disco Diamante 14\"", "ingresos": 2299, "unidades": 1 },
-          { "producto": "Soldadora Inversora 200A 127/220V", "ingresos": 2069, "unidades": 1 },
-          { "producto": "Esmeriladora Angular 800W MARAGA 4-1/2\" 120V", "ingresos": 1599, "unidades": 3 },
-          { "producto": "Serrucho Recto 18 Plg Lenox 20980", "ingresos": 1015, "unidades": 2 }
+          {
+            "producto": "Soldadora Inversora MARAGA 200A ARC200 110/220V",
+            "ingresos": 6499,
+            "unidades": 1
+          },
+          {
+            "producto": "Cortadora de Metales 2400W + Disco Diamante 14\"",
+            "ingresos": 2299,
+            "unidades": 1
+          },
+          {
+            "producto": "Soldadora Inversora 200A 127/220V",
+            "ingresos": 2069,
+            "unidades": 1
+          },
+          {
+            "producto": "Esmeriladora Angular 800W MARAGA 4-1/2\" 120V",
+            "ingresos": 1599,
+            "unidades": 3
+          },
+          {
+            "producto": "Serrucho Recto 18 Plg Lenox 20980",
+            "ingresos": 1015,
+            "unidades": 2
+          }
         ]
       },
       "amazon": {
-        "total": 29345.52, "ordenes": 54, "unidades": 58, "ticket_promedio": 543, "skus": 13,
+        "total": 29345.52,
+        "ordenes": 54,
+        "unidades": 58,
+        "ticket_promedio": 543,
+        "currency": "MXN",
+        "skus": 22,
         "nota": "al 7 de junio",
         "top_productos": [
-          { "producto": "Soldadora Inversora 110/220V, 200 Amp", "ingresos": 9958 },
-          { "producto": "Esmeriladora 4-1/2 Pulgadas 800W", "ingresos": 7034 },
-          { "producto": "Soldadura Electrodo 6013 3/32\" 5Kg", "ingresos": 1017 },
-          { "producto": "Soldadura Electrodo E6013 1/8\", 5 Kg", "ingresos": 738 },
-          { "producto": "Careta Electrónica WEGA350 Sombra 11", "ingresos": 499 }
+          {
+            "producto": "Esmeriladora 4-1/2 Pulgadas 800W",
+            "ingresos": 7034,
+            "unidades": 18
+          },
+          {
+            "producto": "Soldadora Inversora 200A 110/220V",
+            "ingresos": 4979,
+            "unidades": 1
+          },
+          {
+            "producto": "Cortadora Metal 2400W + Disco Diamante 14\"",
+            "ingresos": 3500,
+            "unidades": 1
+          },
+          {
+            "producto": "Hacksaw Frame 12\" Lenox",
+            "ingresos": 1920,
+            "unidades": 4
+          },
+          {
+            "producto": "Sierra Cinta 44-7/8\" 10/14 TPI 3pz",
+            "ingresos": 1406,
+            "unidades": 2
+          }
         ]
       },
       "total_consolidado": 300584.33

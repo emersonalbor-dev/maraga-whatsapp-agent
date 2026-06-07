@@ -4,12 +4,14 @@ import os
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from agent.brain import generar_respuesta
 from agent.memory import inicializar_db, guardar_mensaje, obtener_historial
 from agent.providers import obtener_proveedor
+from agent.ventas_api import get_ventas_mes_actual
 
 load_dotenv()
 
@@ -38,11 +40,38 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS para el dashboard en GitHub Pages
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://emersonalbor-dev.github.io",
+        "http://localhost:3000",
+        "http://127.0.0.1:5500",
+        "null",   # file:// en navegador local
+    ],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 async def health_check():
     """Health check para Railway."""
     return {"status": "ok", "agente": "Mara", "marca": "Maraga"}
+
+
+@app.get("/api/ventas/mes-actual")
+async def ventas_mes_actual():
+    """
+    Retorna ventas en tiempo real del mes en curso para las 3 plataformas.
+    Llamado desde el botón 'Actualizar' del dashboard directoros.
+    """
+    try:
+        data = await get_ventas_mes_actual()
+        return JSONResponse(content=data)
+    except Exception as e:
+        logger.error(f"Error en /api/ventas/mes-actual: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/webhook")
