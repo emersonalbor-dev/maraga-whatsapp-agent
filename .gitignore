@@ -1,0 +1,30 @@
+# Secretos — NUNCA subir
+.env
+
+# Base de datos local
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.Python
+
+# Knowledge (archivos privados del negocio)
+knowledge/*
+!knowledge/.gitkeep
+!knowledge/ventas-dashboard-2026.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

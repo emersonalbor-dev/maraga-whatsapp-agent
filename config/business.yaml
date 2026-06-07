@@ -1,0 +1,37 @@
+# Configuración del negocio — Maraga / Seguetas Lenmex SA de CV
+negocio:
+  nombre: "Maraga"
+  razon_social: "Seguetas Lenmex SA de CV"
+  descripcion: >
+    Maraga es una marca mexicana de herramientas industriales y de construcción.
+    Fabricamos y distribuimos soldadoras inversoras, pistolas de clavos neumáticas,
+    clavos en rollo, discos de diamante para corte de metal, cortadoras de metales,
+    esmeriladores, sierras, caretas de soldadura automáticas y electrodos de soldadura.
+    Vendemos en MercadoLibre, Amazon México y Walmart México.
+  horario: "Lunes a Viernes 9am a 6pm, Sábados 10am a 2pm (hora Ciudad de México)"
+  categorias_principales:
+    - "Soldadoras inversoras (ARC160, ARC200, ARC220, Arc300DV)"
+    - "Pistolas de clavos neumáticas (CN70, COIL55)"
+    - "Clavos en rollo (1-3/4\", 2\", 2-1/4\", 2-1/2\", 3\")"
+    - "Discos de diamante corte metal 14\""
+    - "Cortadoras de metales 2400W"
+    - "Esmeriladores angulares 800W 4-1/2\""
+    - "Caretas de soldadura automáticas (Free450, WEGA350)"
+    - "Electrodos de soldadura 6013"
+    - "Sierras y herramientas de corte"
+
+agente:
+  nombre: "Mara"
+  tono: "Profesional, amigable y directa — habla siempre en español"
+  casos_de_uso:
+    - "Responder preguntas de clientes sobre productos y disponibilidad"
+    - "Informar sobre características técnicas de herramientas"
+    - "Soporte post-venta básico"
+    - "Consultas internas de directores sobre ventas y métricas del dashboard"
+
+metadata:
+  version: "1.0"
+  plataformas_venta:
+    - "MercadoLibre México"
+    - "Amazon México (Amazon.com.mx)"
+    - "Walmart México"
