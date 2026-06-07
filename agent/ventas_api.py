@@ -230,15 +230,30 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
     }
 
 
-# ─── AMAZON (cache desde knowledge JSON) ──────────────────────────────────────
+# ─── AMAZON (caché en memoria + fallback a knowledge JSON) ────────────────────
+_amazon_mem_cache: dict = {}   # { "2026-06": {...datos amazon...} }
+
+
+def set_amazon_cache(mes: str, data: dict) -> None:
+    """Guarda datos de Amazon en memoria (llamado desde el endpoint /amazon-push)."""
+    _amazon_mem_cache[mes] = data
+    logger.info(f"Amazon cache en memoria actualizado para {mes}: "
+                f"total={data.get('total')}, ordenes={data.get('ordenes')}")
+
+
 def get_amazon_cached(mes: str) -> Optional[dict]:
+    """Devuelve datos de Amazon: memoria primero, luego knowledge JSON."""
+    # 1) Caché en memoria (actualizado por cron/push)
+    if mes in _amazon_mem_cache:
+        return _amazon_mem_cache[mes]
+    # 2) Fallback: archivo JSON (actualizado por cron vía git)
     try:
         ruta = os.path.join("knowledge", "ventas-dashboard-2026.json")
         with open(ruta, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data.get("datos_por_mes", {}).get(mes, {}).get("amazon")
     except Exception as e:
-        logger.warning(f"No se pudo cargar Amazon cache: {e}")
+        logger.warning(f"No se pudo cargar Amazon cache de archivo: {e}")
         return None
 
 

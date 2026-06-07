@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from agent.brain import generar_respuesta
 from agent.memory import inicializar_db, guardar_mensaje, obtener_historial
 from agent.providers import obtener_proveedor
-from agent.ventas_api import get_ventas_mes_actual
+from agent.ventas_api import get_ventas_mes_actual, set_amazon_cache
 
 load_dotenv()
 
@@ -58,6 +58,35 @@ app.add_middleware(
 async def health_check():
     """Health check para Railway."""
     return {"status": "ok", "agente": "Mara", "marca": "Maraga"}
+
+
+AMAZON_PUSH_SECRET = os.getenv("AMAZON_PUSH_SECRET", "maraga-amazon-2026")
+
+
+@app.post("/api/ventas/amazon-push")
+async def amazon_push(request: Request):
+    """
+    Recibe datos de Amazon desde el cron de Claude Code (que consulta Porter MCP).
+    Actualiza el caché en memoria para que /api/ventas/mes-actual lo sirva en tiempo real.
+    Protegido con header X-Amazon-Secret.
+    """
+    auth = request.headers.get("X-Amazon-Secret", "")
+    if auth != AMAZON_PUSH_SECRET:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    try:
+        body = await request.json()
+        mes = body.get("mes")
+        data = body.get("data")
+        if not mes or not data:
+            raise HTTPException(status_code=400, detail="Falta campo 'mes' o 'data'")
+        set_amazon_cache(mes, data)
+        logger.info(f"Amazon push recibido: {mes} total={data.get('total')}")
+        return {"ok": True, "mes": mes, "total": data.get("total")}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en /api/ventas/amazon-push: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/ventas/mes-actual")
