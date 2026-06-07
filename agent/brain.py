@@ -144,8 +144,17 @@ async def generar_respuesta(mensaje: str, historial: list[dict]) -> str:
         return respuesta
 
     except Exception as e:
-        logger.error(f"Error Claude API: {e}")
+        error_type = type(e).__name__
+        logger.error(f"Error Claude API [{error_type}]: {e}")
+        # Mensajes específicos para diagnóstico
+        msg_lower = str(e).lower()
+        if "authentication" in msg_lower or "api_key" in msg_lower or "invalid x-api-key" in msg_lower:
+            logger.error("⚠️  ANTHROPIC_API_KEY inválida o no configurada en Railway")
+            return "⚠️ Error de autenticación con la API. Revisa ANTHROPIC_API_KEY en Railway."
+        if "credit" in msg_lower or "billing" in msg_lower or "quota" in msg_lower:
+            logger.error("⚠️  Sin créditos en Anthropic — recarga en console.anthropic.com")
+            return "⚠️ Sin créditos disponibles. Recarga en console.anthropic.com"
         return cfg.get(
             "error_message",
-            "Lo siento, estoy teniendo un problema técnico. Por favor intenta de nuevo. 🔧"
+            "Lo siento, estoy teniendo un problema técnico momentáneo. Por favor intenta de nuevo en unos minutos. 🔧"
         )
