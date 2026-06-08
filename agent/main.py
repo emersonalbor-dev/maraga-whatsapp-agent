@@ -140,15 +140,79 @@ async def chat_directo(request: Request):
 @app.get("/api/chats/whatsapp")
 async def chats_whatsapp():
     """
-    Retorna conversaciones recientes de WhatsApp para el dashboard de directores.
-    Muestra último mensaje de cada contacto, ordenado por recencia.
+    Retorna conversaciones recientes de WhatsApp desde la API de Twilio.
+    Agrupa por contacto y muestra el último mensaje de cada hilo.
     """
+    import base64
+    import httpx as _httpx
+
+    account_sid  = os.getenv("TWILIO_ACCOUNT_SID", "")
+    auth_token   = os.getenv("TWILIO_AUTH_TOKEN", "")
+    twilio_phone = os.getenv("TWILIO_PHONE_NUMBER", "+14155238886")
+    wa_twilio    = f"whatsapp:{twilio_phone}"
+
+    # ── Intento principal: Twilio Messages API ────────────────────────────────
+    if account_sid and auth_token:
+        try:
+            creds = base64.b64encode(f"{account_sid}:{auth_token}".encode()).decode()
+            url   = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+
+            async with _httpx.AsyncClient(timeout=15) as c:
+                r = await c.get(
+                    url,
+                    params={"PageSize": 200},
+                    headers={"Authorization": f"Basic {creds}"},
+                )
+                data = r.json()
+
+            mensajes = data.get("messages", [])
+            threads: dict = {}
+
+            for msg in mensajes:
+                frm       = msg.get("from", "")
+                to        = msg.get("to", "")
+                direction = msg.get("direction", "")
+
+                # Solo WhatsApp
+                if not (frm.startswith("whatsapp:") or to.startswith("whatsapp:")):
+                    continue
+
+                # Número del cliente (el que NO es Twilio)
+                customer = frm if direction == "inbound" else to
+                if customer == wa_twilio:
+                    continue
+
+                created = msg.get("date_created", "")
+                if customer not in threads or created > threads[customer]["date_created"]:
+                    threads[customer] = {
+                        "telefono":        customer,
+                        "ultimo_mensaje":  (msg.get("body") or "")[:120],
+                        "role":            "user" if direction == "inbound" else "assistant",
+                        "timestamp":       created,
+                        "pendiente":       direction == "inbound",
+                        "status":          msg.get("status", ""),
+                        "date_created":    created,
+                    }
+
+            chats = sorted(threads.values(), key=lambda x: x["date_created"], reverse=True)[:20]
+            # Limpiar campo interno antes de devolver
+            for c in chats:
+                c.pop("date_created", None)
+
+            pendientes = sum(1 for c in chats if c["pendiente"])
+            logger.info(f"Twilio chats: {len(chats)} hilos, {pendientes} pendientes")
+            return JSONResponse(content={"chats": chats, "total": len(chats), "pendientes": pendientes})
+
+        except Exception as e:
+            logger.error(f"Error Twilio API en /api/chats/whatsapp: {e}", exc_info=True)
+
+    # ── Fallback: BD local ────────────────────────────────────────────────────
     try:
         chats = await obtener_conversaciones_recientes(limite=20)
         pendientes = sum(1 for c in chats if c["pendiente"])
         return JSONResponse(content={"chats": chats, "total": len(chats), "pendientes": pendientes})
-    except Exception as e:
-        logger.error(f"Error en /api/chats/whatsapp: {e}", exc_info=True)
+    except Exception as e2:
+        logger.error(f"Error DB en /api/chats/whatsapp: {e2}", exc_info=True)
         return JSONResponse(content={"chats": [], "total": 0, "pendientes": 0})
 
 
