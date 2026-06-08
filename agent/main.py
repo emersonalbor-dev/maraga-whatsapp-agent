@@ -60,7 +60,8 @@ async def health_check():
     return {"status": "ok", "agente": "Mara", "marca": "Maraga"}
 
 
-AMAZON_PUSH_SECRET = os.getenv("AMAZON_PUSH_SECRET", "maraga-amazon-2026")
+AMAZON_PUSH_SECRET  = os.getenv("AMAZON_PUSH_SECRET", "maraga-amazon-2026")
+WHATSAPP_BRIDGE_URL = os.getenv("WHATSAPP_BRIDGE_URL", "")  # URL del bridge QR
 
 
 @app.post("/api/ventas/amazon-push")
@@ -151,7 +152,17 @@ async def chats_whatsapp():
     twilio_phone = os.getenv("TWILIO_PHONE_NUMBER", "+14155238886")
     wa_twilio    = f"whatsapp:{twilio_phone}"
 
-    # ── Intento principal: Twilio Messages API ────────────────────────────────
+    # ── Prioridad 1: Bridge QR (Baileys) ─────────────────────────────────────
+    if WHATSAPP_BRIDGE_URL:
+        try:
+            import httpx as _httpx
+            async with _httpx.AsyncClient(timeout=10) as c:
+                r = await c.get(f"{WHATSAPP_BRIDGE_URL}/api/chats/whatsapp")
+                return JSONResponse(content=r.json())
+        except Exception as e:
+            logger.warning(f"Bridge QR no disponible: {e}")
+
+    # ── Prioridad 2: Twilio Messages API ──────────────────────────────────────
     if account_sid and auth_token:
         try:
             creds = base64.b64encode(f"{account_sid}:{auth_token}".encode()).decode()
