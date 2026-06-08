@@ -180,7 +180,7 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
             "seller": ML_SELLER_ID,
             "order.date_created.from": date_from,
             "order.date_created.to": date_to,
-            "sort": "date_asc",
+            "sort": "date_desc",   # date_asc devuelve menos resultados en paging.total
             "limit": LIMIT,
             "offset": offset,
         })
@@ -188,10 +188,9 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
         if not results:
             break
         all_orders.extend(results)
-        total_count = data.get("paging", {}).get("total", 0)
         offset += LIMIT
-        if offset >= total_count:
-            break
+        # No cortar por paging.total: ML puede reportar un total menor al real
+        # según el sort utilizado. Cortamos solo cuando no hay más resultados.
 
     prod_agg: dict = defaultdict(lambda: {"ingresos": 0.0, "unidades": 0})
     total = 0.0
