@@ -193,23 +193,17 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
         offset += LIMIT
 
     prod_agg: dict = defaultdict(lambda: {"ingresos": 0.0, "unidades": 0})
-    # total_bruto = todas las órdenes (incluyendo canceladas), igual que Seller Center "ventas brutas"
-    total_bruto = 0.0
+    total = 0.0
     ordenes = 0
     unidades = 0
     canceladas = 0
-    total_canceladas = 0.0
 
     for order in all_orders:
-        amt = float(order.get("total_amount", 0))
         if order.get("status") == "cancelled":
             canceladas += 1
-            total_canceladas += amt
-            # Las ventas brutas del Seller Center sí las incluyen
-            total_bruto += amt
             continue
         ordenes += 1
-        total_bruto += amt
+        total += float(order.get("total_amount", 0))
         for item in order.get("order_items", []):
             titulo = item.get("item", {}).get("title", "Sin nombre")
             qty = item.get("quantity", 1)
@@ -220,9 +214,7 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
 
     logger.info(
         f"ML resumen: {len(all_orders)} órdenes totales, "
-        f"{ordenes} activas (${total_bruto - total_canceladas:.2f}), "
-        f"{canceladas} canceladas (${total_canceladas:.2f}), "
-        f"total_bruto=${total_bruto:.2f}"
+        f"{ordenes} activas=${total:.2f}, {canceladas} canceladas"
     )
 
     top5 = sorted(
@@ -233,10 +225,10 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
 
     today = datetime.now()
     return {
-        "total": round(total_bruto, 2),   # ventas brutas = incluye canceladas (igual que Seller Center)
+        "total": round(total, 2),
         "ordenes": ordenes,
         "unidades": unidades,
-        "ticketPromedio": round(total_bruto / len(all_orders)) if all_orders else 0,
+        "ticketPromedio": round(total / ordenes) if ordenes else 0,
         "skus": len(prod_agg),
         "parcial": True,
         "parcialLabel": f"al {today.day} de {MESES_ES[today.month]}",
