@@ -91,15 +91,25 @@ async def fetch_walmart_mes(date_from: str, date_to: str) -> dict:
     unidades = 0
 
     for order in all_orders:
-        total += float(order.get("orderTotal", {}).get("amount", 0))
         for line in order.get("orderLines", []):
             prod = line.get("item", {}).get("productName", "Sin nombre")
             qty = int(float(line.get("orderLineQuantity", {}).get("amount", 1)))
-            charges = line.get("charges", [])
-            price = float(charges[0]["chargeAmount"]["amount"]) if charges else 0.0
-            prod_agg[prod]["ingresos"] += price
+            # Usar unitPrice * qty (precio CON IVA que ve el comprador)
+            # consistente con el total del pedido (orderTotal ya incluye IVA)
+            unit_price = float(line.get("item", {}).get("unitPrice", {}).get("amount", 0))
+            line_total = unit_price * qty
+            if line_total == 0:
+                # Fallback: usar chargeAmount + tax si unitPrice no está disponible
+                charges = line.get("charges", [])
+                if charges:
+                    charge = float(charges[0]["chargeAmount"]["amount"])
+                    taxes = sum(float(t["taxAmount"]["amount"]) for t in charges[0].get("tax", []))
+                    line_total = charge + taxes
+            prod_agg[prod]["ingresos"] += line_total
             prod_agg[prod]["unidades"] += qty
             unidades += qty
+        # total = suma de orderTotal (precio comprador con IVA) — consistente con prod_agg
+        total += float(order.get("orderTotal", {}).get("amount", 0))
 
     ordenes = len(all_orders)
     top5 = sorted(
@@ -109,6 +119,7 @@ async def fetch_walmart_mes(date_from: str, date_to: str) -> dict:
     )[:5]
 
     today = datetime.now()
+    logger.info(f"Walmart resumen: {ordenes} órdenes, total=${total:.2f} MXN (con IVA)")
     return {
         "total": round(total, 2),
         "ordenes": ordenes,
@@ -314,15 +325,22 @@ async def get_ventas_mes_actual() -> dict:
     ml_data      = results[1] if not isinstance(results[1], Exception) else None
     amazon_data  = get_amazon_cached(mes_str)
 
+    walmart_error = None
+    ml_error = None
+
     if isinstance(results[0], Exception):
+        walmart_error = str(results[0])
         logger.error(f"Error Walmart: {results[0]}")
     if isinstance(results[1], Exception):
+        ml_error = str(results[1])
         logger.error(f"Error ML: {results[1]}")
 
     return {
         "mes": mes_str,
         "actualizado_at": now.isoformat(),
         "walmart": walmart_data,
+        "walmart_error": walmart_error,
         "mercadolibre": ml_data,
+        "ml_error": ml_error,
         "amazon": amazon_data,
     }
