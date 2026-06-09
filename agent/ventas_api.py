@@ -1,10 +1,12 @@
-# agent/ventas_api.py — Clientes en tiempo real: Walmart, MercadoLibre, Amazon (cache)
+# agent/ventas_api.py — Clientes en tiempo real: Walmart, MercadoLibre, Amazon (SP-API)
 
 import os
 import json
 import time
 import uuid
 import base64
+import hashlib
+import hmac as hmac_lib
 import logging
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
@@ -247,6 +249,185 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
     }
 
 
+# ─── AMAZON SP-API (tiempo real) ─────────────────────────────────────────────
+AMZ_CLIENT_ID     = os.getenv("AMAZON_CLIENT_ID", "")
+AMZ_CLIENT_SECRET = os.getenv("AMAZON_CLIENT_SECRET", "")
+AMZ_REFRESH_TOKEN = os.getenv("AMAZON_REFRESH_TOKEN", "")
+AMZ_AWS_KEY       = os.getenv("AWS_ACCESS_KEY_ID", "")
+AMZ_AWS_SECRET    = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+AMZ_MARKETPLACE   = os.getenv("AMAZON_MARKETPLACE_ID", "A1AM78C64UM0Y8")
+AMZ_SP_BASE       = "https://sellingpartnerapi-na.amazon.com"
+AMZ_REGION        = "us-east-1"
+
+_amz_lwa_token: str = ""
+_amz_lwa_exp:   float = 0.0
+
+
+async def _get_amz_lwa_token() -> str:
+    global _amz_lwa_token, _amz_lwa_exp
+    if _amz_lwa_token and time.time() < _amz_lwa_exp - 60:
+        return _amz_lwa_token
+    async with httpx.AsyncClient(timeout=15) as c:
+        r = await c.post(
+            "https://api.amazon.com/auth/o2/token",
+            data={
+                "grant_type":    "refresh_token",
+                "refresh_token": AMZ_REFRESH_TOKEN,
+                "client_id":     AMZ_CLIENT_ID,
+                "client_secret": AMZ_CLIENT_SECRET,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        r.raise_for_status()
+        d = r.json()
+    _amz_lwa_token = d["access_token"]
+    _amz_lwa_exp   = time.time() + d.get("expires_in", 3600)
+    logger.info("Token LWA Amazon renovado")
+    return _amz_lwa_token
+
+
+def _amz_sigv4_headers(method: str, url: str, lwa_token: str, body: str = "") -> dict:
+    """AWS Signature Version 4 para Amazon SP-API."""
+    from urllib.parse import urlparse, urlencode
+    parsed  = urlparse(url)
+    now     = datetime.utcnow()
+    amz_date   = now.strftime("%Y%m%dT%H%M%SZ")
+    date_stamp = now.strftime("%Y%m%d")
+
+    # Canonical query string (ordenado)
+    qs_pairs = sorted(parsed.query.split("&")) if parsed.query else []
+    canonical_qs = "&".join(qs_pairs)
+
+    # Headers canónicos
+    headers_to_sign = {
+        "host":               parsed.hostname,
+        "x-amz-access-token": lwa_token,
+        "x-amz-date":         amz_date,
+    }
+    canonical_headers = "".join(f"{k}:{v}\n" for k, v in sorted(headers_to_sign.items()))
+    signed_headers    = ";".join(sorted(headers_to_sign.keys()))
+
+    payload_hash = hashlib.sha256(body.encode()).hexdigest()
+    canonical_req = "\n".join([
+        method, parsed.path, canonical_qs,
+        canonical_headers, signed_headers, payload_hash,
+    ])
+
+    cred_scope  = f"{date_stamp}/{AMZ_REGION}/execute-api/aws4_request"
+    string_to_sign = "\n".join([
+        "AWS4-HMAC-SHA256", amz_date, cred_scope,
+        hashlib.sha256(canonical_req.encode()).hexdigest(),
+    ])
+
+    def _hmac(key, msg):
+        return hmac_lib.new(key, msg.encode(), hashlib.sha256).digest()
+
+    k_date    = _hmac(f"AWS4{AMZ_AWS_SECRET}".encode(), date_stamp)
+    k_region  = _hmac(k_date, AMZ_REGION)
+    k_service = _hmac(k_region, "execute-api")
+    k_sign    = _hmac(k_service, "aws4_request")
+    signature = hmac_lib.new(k_sign, string_to_sign.encode(), hashlib.sha256).hexdigest()
+
+    auth = (
+        f"AWS4-HMAC-SHA256 Credential={AMZ_AWS_KEY}/{cred_scope}, "
+        f"SignedHeaders={signed_headers}, Signature={signature}"
+    )
+    return {
+        "Authorization":      auth,
+        "x-amz-access-token": lwa_token,
+        "x-amz-date":         amz_date,
+        "Content-Type":       "application/json",
+        "Accept":             "application/json",
+    }
+
+
+async def _amz_get(path: str, params: dict = {}) -> dict:
+    lwa = await _get_amz_lwa_token()
+    from urllib.parse import urlencode
+    qs  = ("?" + urlencode(params)) if params else ""
+    url = f"{AMZ_SP_BASE}{path}{qs}"
+    headers = _amz_sigv4_headers("GET", url, lwa)
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get(url, headers=headers)
+        if r.status_code >= 400:
+            raise RuntimeError(f"SP-API {r.status_code}: {r.text[:200]}")
+        return r.json()
+
+
+async def fetch_amazon_mes(date_from: str, date_to: str) -> dict:
+    """Obtiene órdenes de Amazon SP-API en tiempo real."""
+    if not AMZ_AWS_KEY or AMZ_AWS_KEY == "PENDIENTE":
+        raise RuntimeError("AWS_ACCESS_KEY_ID no configurado en Railway")
+    if not AMZ_REFRESH_TOKEN or AMZ_REFRESH_TOKEN == "PENDIENTE":
+        raise RuntimeError("AMAZON_REFRESH_TOKEN no configurado en Railway")
+
+    all_orders = []
+    next_token = None
+    while True:
+        params: dict = {
+            "CreatedAfter":  date_from,
+            "CreatedBefore": date_to,
+            "MarketplaceIds": AMZ_MARKETPLACE,
+            "MaxResultsPerPage": 100,
+        }
+        if next_token:
+            params["NextToken"] = next_token
+        data = await _amz_get("/orders/v0/orders", params)
+        orders = data.get("payload", {}).get("Orders", [])
+        all_orders.extend(orders)
+        next_token = data.get("payload", {}).get("NextToken")
+        if not next_token or not orders:
+            break
+
+    # Agregar items por orden (en paralelo por lotes de 10)
+    import asyncio
+    prod_agg: dict = defaultdict(lambda: {"ingresos": 0.0, "unidades": 0})
+    total = 0.0
+    unidades = 0
+
+    async def _fetch_items(order_id: str):
+        try:
+            d = await _amz_get(f"/orders/v0/orders/{order_id}/orderItems")
+            return d.get("payload", {}).get("OrderItems", [])
+        except Exception:
+            return []
+
+    # Sólo órdenes no canceladas
+    active = [o for o in all_orders if o.get("OrderStatus") not in ("Canceled", "Unfulfillable")]
+    total = sum(float(o.get("OrderTotal", {}).get("Amount", 0)) for o in active)
+
+    item_results = await asyncio.gather(*[_fetch_items(o["AmazonOrderId"]) for o in active])
+    for items in item_results:
+        for item in items:
+            title = item.get("Title", "Sin nombre")
+            qty   = int(item.get("QuantityOrdered", 1))
+            price = float(item.get("ItemPrice", {}).get("Amount", 0))
+            prod_agg[title]["ingresos"] += price
+            prod_agg[title]["unidades"] += qty
+            unidades += qty
+
+    ordenes = len(active)
+    top5 = sorted(
+        [{"titulo": k, "ingresos": round(v["ingresos"], 2), "unidades": v["unidades"]}
+         for k, v in prod_agg.items()],
+        key=lambda x: x["ingresos"], reverse=True
+    )[:5]
+
+    today = datetime.now()
+    logger.info(f"Amazon SP-API: {ordenes} órdenes activas, total=${total:.2f} MXN")
+    return {
+        "total":         round(total, 2),
+        "ordenes":       ordenes,
+        "unidades":      unidades,
+        "ticketPromedio": round(total / ordenes) if ordenes else 0,
+        "currency":      "MXN",
+        "skus":          len(prod_agg),
+        "parcial":       True,
+        "parcialLabel":  f"al {today.day} de {MESES_ES[today.month]}",
+        "top":           top5,
+    }
+
+
 # ─── AMAZON (caché en memoria + fallback a knowledge JSON) ────────────────────
 _amazon_mem_cache: dict = {}   # { "2026-06": {...datos amazon...} }
 
@@ -309,24 +490,31 @@ async def get_ventas_mes_actual() -> dict:
     fin    = now.replace(hour=23, minute=59, second=59, microsecond=0)
 
     # ISO 8601 para cada API
-    wm_from = inicio.strftime("%Y-%m-%dT%H:%M:%SZ")
-    wm_to   = fin.strftime("%Y-%m-%dT%H:%M:%SZ")
-    ml_from = inicio.strftime("%Y-%m-%dT%H:%M:%S.000-06:00")
-    ml_to   = fin.strftime("%Y-%m-%dT%H:%M:%S.000-06:00")
+    wm_from  = inicio.strftime("%Y-%m-%dT%H:%M:%SZ")
+    wm_to    = fin.strftime("%Y-%m-%dT%H:%M:%SZ")
+    ml_from  = inicio.strftime("%Y-%m-%dT%H:%M:%S.000-06:00")
+    ml_to    = fin.strftime("%Y-%m-%dT%H:%M:%S.000-06:00")
+    amz_from = inicio.strftime("%Y-%m-%dT%H:%M:%SZ")
+    amz_to   = fin.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     import asyncio
     results = await asyncio.gather(
         fetch_walmart_mes(wm_from, wm_to),
         fetch_ml_mes(ml_from, ml_to),
+        fetch_amazon_mes(amz_from, amz_to),
         return_exceptions=True,
     )
 
     walmart_data = results[0] if not isinstance(results[0], Exception) else None
     ml_data      = results[1] if not isinstance(results[1], Exception) else None
-    amazon_data  = get_amazon_cached(mes_str)
+    amazon_live  = results[2] if not isinstance(results[2], Exception) else None
+
+    # Fallback a caché si SP-API falla
+    amazon_data  = amazon_live or get_amazon_cached(mes_str)
 
     walmart_error = None
-    ml_error = None
+    ml_error      = None
+    amazon_error  = None
 
     if isinstance(results[0], Exception):
         walmart_error = str(results[0])
@@ -334,13 +522,17 @@ async def get_ventas_mes_actual() -> dict:
     if isinstance(results[1], Exception):
         ml_error = str(results[1])
         logger.error(f"Error ML: {results[1]}")
+    if isinstance(results[2], Exception):
+        amazon_error = str(results[2])
+        logger.warning(f"Amazon SP-API falló (usando caché): {results[2]}")
 
     return {
         "mes": mes_str,
         "actualizado_at": now.isoformat(),
-        "walmart": walmart_data,
+        "walmart":       walmart_data,
         "walmart_error": walmart_error,
-        "mercadolibre": ml_data,
-        "ml_error": ml_error,
-        "amazon": amazon_data,
+        "mercadolibre":  ml_data,
+        "ml_error":      ml_error,
+        "amazon":        amazon_data,
+        "amazon_error":  amazon_error if not amazon_live else None,
     }
