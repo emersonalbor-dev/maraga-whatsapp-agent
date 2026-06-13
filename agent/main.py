@@ -90,6 +90,150 @@ async def amazon_push(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/auth/amazon")
+async def amazon_auth_start():
+    """Inicia el flujo OAuth de Amazon SP-API (LWA). Redirige a Amazon Seller Central."""
+    import secrets
+    from fastapi.responses import RedirectResponse, HTMLResponse
+    client_id = os.getenv("AMAZON_CLIENT_ID", "")
+    if not client_id:
+        return HTMLResponse("<h2>Error: AMAZON_CLIENT_ID no configurado en Railway</h2>", status_code=500)
+    state = secrets.token_hex(12)
+    redirect_uri = "https://maraga-whatsapp-agent-production.up.railway.app/api/auth/amazon/callback"
+    auth_url = (
+        f"https://www.amazon.com/ap/oa"
+        f"?client_id={client_id}"
+        f"&scope=sellingpartnerapi::eforests"
+        f"&response_type=code"
+        f"&redirect_uri={redirect_uri}"
+        f"&state={state}"
+    )
+    return RedirectResponse(url=auth_url)
+
+
+@app.get("/api/auth/amazon/callback")
+async def amazon_auth_callback(code: str = "", error: str = ""):
+    """Recibe el código OAuth de Amazon y lo intercambia por refresh_token."""
+    from fastapi.responses import HTMLResponse
+    if error or not code:
+        return HTMLResponse(f"<h2>Error de autorización: {error}</h2>", status_code=400)
+    client_id     = os.getenv("AMAZON_CLIENT_ID", "")
+    client_secret = os.getenv("AMAZON_CLIENT_SECRET", "")
+    redirect_uri  = "https://maraga-whatsapp-agent-production.up.railway.app/api/auth/amazon/callback"
+    import httpx as _httpx
+    async with _httpx.AsyncClient(timeout=15) as c:
+        r = await c.post(
+            "https://api.amazon.com/auth/o2/token",
+            data={
+                "grant_type":    "authorization_code",
+                "code":          code,
+                "redirect_uri":  redirect_uri,
+                "client_id":     client_id,
+                "client_secret": client_secret,
+            },
+        )
+    data = r.json()
+    if "refresh_token" not in data:
+        return HTMLResponse(f"<h2>Error al intercambiar código</h2><pre>{data}</pre>", status_code=400)
+    refresh_token = data["refresh_token"]
+    logger.info(f"Amazon refresh_token obtenido (primeros 20 chars): {refresh_token[:20]}...")
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Amazon Auth OK</title>
+<style>body{{font-family:sans-serif;padding:40px;max-width:700px;margin:auto}}
+pre{{background:#f4f4f4;padding:16px;border-radius:8px;word-break:break-all}}
+.ok{{color:#1d9e75;font-size:18px;font-weight:700}}</style></head><body>
+<div class="ok">✅ Amazon autorizado correctamente</div>
+<h3>Guarda este valor en Railway como variable de entorno:</h3>
+<p><strong>AMAZON_REFRESH_TOKEN</strong></p>
+<pre>{refresh_token}</pre>
+<p>Ve a <a href="https://railway.app" target="_blank">railway.app</a> → tu proyecto → Variables → agregar AMAZON_REFRESH_TOKEN con ese valor.</p>
+</body></html>"""
+    return HTMLResponse(html)
+
+
+@app.get("/api/auth/tiktok")
+async def tiktok_auth_start():
+    """Inicia el flujo OAuth de TikTok Shop."""
+    from fastapi.responses import RedirectResponse, HTMLResponse
+    app_key = os.getenv("TIKTOK_APP_KEY", "")
+    if not app_key:
+        return HTMLResponse("<h2>Error: TIKTOK_APP_KEY no configurado en Railway</h2>", status_code=500)
+    redirect_uri = "https://maraga-whatsapp-agent-production.up.railway.app/api/auth/tiktok/callback"
+    import urllib.parse
+    auth_url = (
+        f"https://services.tiktokshop.com/open/authorize"
+        f"?app_key={app_key}"
+        f"&state=maraga"
+        f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
+    )
+    return RedirectResponse(url=auth_url)
+
+
+@app.get("/api/auth/tiktok/callback")
+async def tiktok_auth_callback(code: str = "", auth_code: str = "", error: str = ""):
+    """Recibe el código OAuth de TikTok y lo intercambia por access_token."""
+    from fastapi.responses import HTMLResponse
+    auth_code = auth_code or code
+    if error or not auth_code:
+        return HTMLResponse(f"<h2>Error de autorización TikTok: {error or 'sin código'}</h2>", status_code=400)
+    app_key    = os.getenv("TIKTOK_APP_KEY", "")
+    app_secret = os.getenv("TIKTOK_APP_SECRET", "")
+    import httpx as _httpx, json as _json, hashlib as _hashlib, hmac as _hmac, time as _time
+    ts   = int(_time.time())
+    path = "/api/v2/token/get"
+    body = {"app_key": app_key, "app_secret": app_secret, "auth_code": auth_code, "grant_type": "authorized_code"}
+    body_str = _json.dumps(body, separators=(",", ":"))
+    excluded = {"sign", "access_token"}
+    params   = {"app_key": app_key, "timestamp": ts}
+    sorted_s = "".join(f"{k}{v}" for k, v in sorted(params.items()) if k not in excluded)
+    base_str = f"{app_secret}{path}{sorted_s}{body_str}"
+    sign     = _hmac.new(app_secret.encode(), base_str.encode(), _hashlib.sha256).hexdigest()
+    params["sign"] = sign
+    async with _httpx.AsyncClient(timeout=15) as c:
+        r = await c.post(
+            f"https://open-api.tiktokglobalshop.com{path}",
+            params=params, content=body_str,
+            headers={"Content-Type": "application/json"},
+        )
+    data = r.json()
+    if data.get("code") != 0:
+        return HTMLResponse(f"<h2>Error TikTok {data.get('code')}: {data.get('message')}</h2><pre>{data}</pre>", status_code=400)
+    tok   = data.get("data", {})
+    at    = tok.get("access_token", "")
+    rt    = tok.get("refresh_token", "")
+    # Get shop cipher
+    shop_cipher = ""
+    ts2   = int(_time.time())
+    params2 = {"app_key": app_key, "timestamp": ts2, "access_token": at}
+    sorted_s2 = "".join(f"{k}{v}" for k, v in sorted(params2.items()) if k not in {"sign","access_token"} and v)
+    base_str2 = f"{app_secret}/api/v2/shop/get_authorized_shop{sorted_s2}"
+    sign2 = _hmac.new(app_secret.encode(), base_str2.encode(), _hashlib.sha256).hexdigest()
+    params2["sign"] = sign2
+    try:
+        async with _httpx.AsyncClient(timeout=15) as c:
+            r2 = await c.get("https://open-api.tiktokglobalshop.com/api/v2/shop/get_authorized_shop", params=params2)
+        shops_data = r2.json()
+        shops = shops_data.get("data", {}).get("shops", [])
+        if shops:
+            shop_cipher = shops[0].get("shop_cipher", "")
+    except Exception as e:
+        shop_cipher = f"ERROR: {e}"
+    logger.info(f"TikTok access_token obtenido: {at[:20]}...")
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>TikTok Auth OK</title>
+<style>body{{font-family:sans-serif;padding:40px;max-width:700px;margin:auto}}
+pre{{background:#f4f4f4;padding:16px;border-radius:8px;word-break:break-all}}
+.ok{{color:#1d9e75;font-size:18px;font-weight:700}}</style></head><body>
+<div class="ok">✅ TikTok Shop autorizado correctamente</div>
+<h3>Guarda estos valores en Railway como variables de entorno:</h3>
+<p><strong>TIKTOK_ACCESS_TOKEN</strong></p><pre>{at}</pre>
+<p><strong>TIKTOK_REFRESH_TOKEN</strong> (para renovar)</p><pre>{rt}</pre>
+<p><strong>TIKTOK_SHOP_CIPHER</strong></p><pre>{shop_cipher or '(no se pudo obtener — corre /api/auth/tiktok/shops después)'}</pre>
+<p>Ve a <a href="https://railway.app" target="_blank">railway.app</a> → tu proyecto → Variables.</p>
+</body></html>"""
+    return HTMLResponse(html)
+
+
 @app.get("/api/ventas/mes-actual")
 async def ventas_mes_actual():
     """
