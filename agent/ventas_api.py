@@ -480,6 +480,198 @@ def get_amazon_cached(mes: str) -> Optional[dict]:
         return None
 
 
+# ─── TIKTOK SHOP ──────────────────────────────────────────────────────────────
+TTK_APP_KEY      = os.getenv("TIKTOK_APP_KEY", "")
+TTK_APP_SECRET   = os.getenv("TIKTOK_APP_SECRET", "")
+TTK_ACCESS_TOKEN = os.getenv("TIKTOK_ACCESS_TOKEN", "")
+TTK_SHOP_CIPHER  = os.getenv("TIKTOK_SHOP_CIPHER", "")
+TTK_BASE         = "https://open-api.tiktokglobalshop.com"
+
+
+def _tiktok_sign(path: str, params: dict, body: str = "") -> str:
+    excluded = {"sign", "access_token"}
+    sorted_str = "".join(
+        f"{k}{v}" for k, v in sorted(params.items())
+        if k not in excluded and v is not None and v != ""
+    )
+    base = f"{TTK_APP_SECRET}{path}{sorted_str}{body}"
+    return hmac_lib.new(TTK_APP_SECRET.encode(), base.encode(), hashlib.sha256).hexdigest()
+
+
+async def _tiktok_post(path: str, body: dict) -> dict:
+    ts = int(time.time())
+    params: dict = {
+        "app_key":      TTK_APP_KEY,
+        "timestamp":    ts,
+        "access_token": TTK_ACCESS_TOKEN,
+    }
+    if TTK_SHOP_CIPHER:
+        params["shop_cipher"] = TTK_SHOP_CIPHER
+    body_str = json.dumps(body, separators=(",", ":"))
+    params["sign"] = _tiktok_sign(path, params, body_str)
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.post(
+            f"{TTK_BASE}{path}",
+            params=params,
+            content=body_str,
+            headers={"Content-Type": "application/json"},
+        )
+        r.raise_for_status()
+        data = r.json()
+    if data.get("code") != 0:
+        raise RuntimeError(f"TikTok API {data.get('code')}: {data.get('message')}")
+    return data.get("data", {})
+
+
+async def fetch_tiktok_mes(ts_from: int, ts_to: int) -> dict:
+    """Obtiene órdenes de TikTok Shop MX en tiempo real."""
+    if not TTK_APP_KEY or not TTK_APP_SECRET or not TTK_ACCESS_TOKEN:
+        raise RuntimeError("Credenciales TikTok no configuradas en Railway")
+
+    cancelled = {"CANCELLED", "PARTIALLY_CANCELLING"}
+    all_orders: list = []
+    page_token: Optional[str] = None
+
+    while True:
+        body: dict = {
+            "create_time_ge": ts_from,
+            "create_time_lt": ts_to,
+            "page_size": 50,
+            "sort_field": "CREATE_TIME",
+            "sort_order": "ASC",
+        }
+        if page_token:
+            body["page_token"] = page_token
+        data = await _tiktok_post("/api/v2/order/search", body)
+        orders = data.get("orders") or []
+        all_orders.extend(orders)
+        page_token = data.get("next_page_token") or ""
+        if not page_token or not orders:
+            break
+
+    prod_agg: dict = defaultdict(lambda: {"ingresos": 0.0, "unidades": 0})
+    total    = 0.0
+    unidades = 0
+    ordenes  = 0
+
+    for order in all_orders:
+        if order.get("order_status") in cancelled:
+            continue
+        ordenes += 1
+        pay = order.get("payment_info") or {}
+        total += float(pay.get("total_amount", 0))
+        for line in order.get("line_items") or []:
+            name = line.get("product_name", "Sin nombre")
+            qty  = int(line.get("quantity", 1))
+            prod_agg[name]["ingresos"] += float(line.get("sale_price", 0)) * qty
+            prod_agg[name]["unidades"] += qty
+            unidades += qty
+
+    top5 = sorted(
+        [{"titulo": k, "ingresos": round(v["ingresos"], 2), "unidades": v["unidades"]}
+         for k, v in prod_agg.items()],
+        key=lambda x: x["ingresos"], reverse=True
+    )[:5]
+
+    today = datetime.now()
+    logger.info(f"TikTok Shop: {ordenes} órdenes, total=${total:.2f} MXN")
+    return {
+        "total":          round(total, 2),
+        "ordenes":        ordenes,
+        "unidades":       unidades,
+        "ticketPromedio": round(total / ordenes) if ordenes else 0,
+        "currency":       "MXN",
+        "skus":           len(prod_agg),
+        "parcial":        True,
+        "parcialLabel":   f"al {today.day} de {MESES_ES[today.month]}",
+        "top":            top5,
+    }
+
+
+# ─── VTEX (MARAGA MX — venta directa) ─────────────────────────────────────────
+VTEX_ACCOUNT     = os.getenv("VTEX_ACCOUNT_NAME", "")
+VTEX_ENVIRONMENT = os.getenv("VTEX_ENVIRONMENT", "vtexcommercestable")
+VTEX_APP_KEY     = os.getenv("VTEX_APP_KEY", "")
+VTEX_APP_TOKEN   = os.getenv("VTEX_APP_TOKEN", "")
+
+
+async def _vtex_get(path: str, params: dict = {}) -> dict:
+    base = f"https://{VTEX_ACCOUNT}.{VTEX_ENVIRONMENT}.com.br"
+    headers = {
+        "X-VTEX-API-AppKey":   VTEX_APP_KEY,
+        "X-VTEX-API-AppToken": VTEX_APP_TOKEN,
+        "Accept":              "application/json",
+    }
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get(f"{base}{path}", params=params, headers=headers)
+        r.raise_for_status()
+        return r.json()
+
+
+async def fetch_vtex_mes(date_from: str, date_to: str) -> dict:
+    """Obtiene órdenes de VTEX (MaragaMX venta directa) en tiempo real."""
+    if not VTEX_ACCOUNT or not VTEX_APP_KEY or not VTEX_APP_TOKEN:
+        raise RuntimeError("Credenciales VTEX no configuradas en Railway")
+
+    cancelled = {"canceled", "canceling"}
+    date_filter = f"creationDate:[{date_from} TO {date_to}]"
+    all_orders: list = []
+    page = 1
+
+    while True:
+        data = await _vtex_get("/api/oms/pvt/orders", {
+            "orderBy":        "creationDate,desc",
+            "f_creationDate": date_filter,
+            "page":           page,
+            "per_page":       100,
+        })
+        orders = data.get("list", [])
+        all_orders.extend(orders)
+        paging = data.get("paging", {})
+        if page >= paging.get("pages", 1) or not orders:
+            break
+        page += 1
+
+    prod_agg: dict = defaultdict(lambda: {"ingresos": 0.0, "unidades": 0})
+    total    = 0.0
+    unidades = 0
+    ordenes  = 0
+
+    for order in all_orders:
+        if order.get("status") in cancelled:
+            continue
+        ordenes += 1
+        # VTEX value está en centavos
+        total += float(order.get("value", 0)) / 100.0
+        for item in order.get("items") or []:
+            name  = item.get("description") or item.get("name", "Sin nombre")
+            qty   = int(item.get("quantity", 1))
+            price = float(item.get("sellingPrice", 0)) / 100.0 * qty
+            prod_agg[name]["ingresos"] += price
+            prod_agg[name]["unidades"] += qty
+            unidades += qty
+
+    top5 = sorted(
+        [{"titulo": k, "ingresos": round(v["ingresos"], 2), "unidades": v["unidades"]}
+         for k, v in prod_agg.items()],
+        key=lambda x: x["ingresos"], reverse=True
+    )[:5]
+
+    today = datetime.now()
+    logger.info(f"VTEX MaragaMX: {ordenes} órdenes, total=${total:.2f} MXN")
+    return {
+        "total":          round(total, 2),
+        "ordenes":        ordenes,
+        "unidades":       unidades,
+        "ticketPromedio": round(total / ordenes) if ordenes else 0,
+        "currency":       "MXN",
+        "skus":           len(prod_agg),
+        "parcial":        True,
+        "parcialLabel":   f"al {today.day} de {MESES_ES[today.month]}",
+        "top":            top5,
+    }
+
+
 # ─── AGREGADOR PRINCIPAL ──────────────────────────────────────────────────────
 async def get_ventas_mes_actual() -> dict:
     now = datetime.now()
@@ -489,32 +681,42 @@ async def get_ventas_mes_actual() -> dict:
     inicio = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     fin    = now.replace(hour=23, minute=59, second=59, microsecond=0)
 
-    # ISO 8601 para cada API
+    # Formatos de fecha para cada API
+    iso_from = inicio.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    iso_to   = fin.strftime("%Y-%m-%dT%H:%M:%S.999Z")
     wm_from  = inicio.strftime("%Y-%m-%dT%H:%M:%SZ")
     wm_to    = fin.strftime("%Y-%m-%dT%H:%M:%SZ")
     ml_from  = inicio.strftime("%Y-%m-%dT%H:%M:%S.000-06:00")
     ml_to    = fin.strftime("%Y-%m-%dT%H:%M:%S.000-06:00")
     amz_from = inicio.strftime("%Y-%m-%dT%H:%M:%SZ")
     amz_to   = fin.strftime("%Y-%m-%dT%H:%M:%SZ")
+    ts_from  = int(inicio.timestamp())
+    ts_to    = int(fin.timestamp())
 
     import asyncio
     results = await asyncio.gather(
         fetch_walmart_mes(wm_from, wm_to),
         fetch_ml_mes(ml_from, ml_to),
         fetch_amazon_mes(amz_from, amz_to),
+        fetch_tiktok_mes(ts_from, ts_to),
+        fetch_vtex_mes(iso_from, iso_to),
         return_exceptions=True,
     )
 
     walmart_data = results[0] if not isinstance(results[0], Exception) else None
     ml_data      = results[1] if not isinstance(results[1], Exception) else None
     amazon_live  = results[2] if not isinstance(results[2], Exception) else None
+    tiktok_data  = results[3] if not isinstance(results[3], Exception) else None
+    vtex_data    = results[4] if not isinstance(results[4], Exception) else None
 
-    # Fallback a caché si SP-API falla
-    amazon_data  = amazon_live or get_amazon_cached(mes_str)
+    # Amazon: fallback a caché si SP-API falla
+    amazon_data = amazon_live or get_amazon_cached(mes_str)
 
-    walmart_error = None
-    ml_error      = None
-    amazon_error  = None
+    walmart_error   = None
+    ml_error        = None
+    amazon_error    = None
+    tiktok_error    = None
+    maraga_mx_error = None
 
     if isinstance(results[0], Exception):
         walmart_error = str(results[0])
@@ -525,14 +727,24 @@ async def get_ventas_mes_actual() -> dict:
     if isinstance(results[2], Exception):
         amazon_error = str(results[2])
         logger.warning(f"Amazon SP-API falló (usando caché): {results[2]}")
+    if isinstance(results[3], Exception):
+        tiktok_error = str(results[3])
+        logger.error(f"Error TikTok: {results[3]}")
+    if isinstance(results[4], Exception):
+        maraga_mx_error = str(results[4])
+        logger.error(f"Error VTEX MaragaMX: {results[4]}")
 
     return {
-        "mes": mes_str,
+        "mes":            mes_str,
         "actualizado_at": now.isoformat(),
-        "walmart":       walmart_data,
-        "walmart_error": walmart_error,
-        "mercadolibre":  ml_data,
-        "ml_error":      ml_error,
-        "amazon":        amazon_data,
-        "amazon_error":  amazon_error if not amazon_live else None,
+        "walmart":        walmart_data,
+        "walmart_error":  walmart_error,
+        "mercadolibre":   ml_data,
+        "ml_error":       ml_error,
+        "amazon":         amazon_data,
+        "amazon_error":   amazon_error if not amazon_live else None,
+        "tiktok":         tiktok_data,
+        "tiktok_error":   tiktok_error,
+        "maraga_mx":      vtex_data,
+        "maraga_mx_error": maraga_mx_error,
     }
