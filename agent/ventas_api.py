@@ -430,6 +430,7 @@ async def fetch_amazon_mes(date_from: str, date_to: str) -> dict:
 
 # ─── AMAZON (caché en memoria + fallback a knowledge JSON) ────────────────────
 _amazon_mem_cache: dict = {}   # { "2026-06": {...datos amazon...} }
+_tableau_plat_cache: dict = {}  # { "2026-06": {"amazon": {...}, "maraga_mx": {...}} }
 
 
 def set_amazon_cache(mes: str, data: dict) -> None:
@@ -464,11 +465,15 @@ def _normalize_amazon(data: dict) -> dict:
 
 
 def get_amazon_cached(mes: str) -> Optional[dict]:
-    """Devuelve datos de Amazon: memoria primero, luego knowledge JSON."""
-    # 1) Caché en memoria (actualizado por cron/push)
+    """Devuelve datos de Amazon: Tableau cache primero, luego memory cache, luego JSON."""
+    # 1) Tableau cache (actualizado por cron)
+    tableau_entry = _tableau_plat_cache.get(mes, {})
+    if "amazon" in tableau_entry:
+        return tableau_entry["amazon"]
+    # 2) Caché en memoria legacy
     if mes in _amazon_mem_cache:
         return _normalize_amazon(_amazon_mem_cache[mes])
-    # 2) Fallback: archivo JSON (actualizado por cron vía git)
+    # 3) Fallback: archivo JSON
     try:
         ruta = os.path.join("knowledge", "ventas-dashboard-2026.json")
         with open(ruta, "r", encoding="utf-8") as f:
@@ -478,6 +483,19 @@ def get_amazon_cached(mes: str) -> Optional[dict]:
     except Exception as e:
         logger.warning(f"No se pudo cargar Amazon cache de archivo: {e}")
         return None
+
+
+def set_tableau_plat_cache(mes: str, platform: str, data: dict) -> None:
+    """Guarda datos de Tableau para una plataforma en memoria."""
+    if mes not in _tableau_plat_cache:
+        _tableau_plat_cache[mes] = {}
+    _tableau_plat_cache[mes][platform] = data
+    logger.info(f"Tableau cache [{platform}] actualizado para {mes}: total={data.get('total')}")
+
+
+def get_maraga_mx_cached(mes: str) -> Optional[dict]:
+    """Devuelve datos de MaragaMX desde caché de Tableau."""
+    return _tableau_plat_cache.get(mes, {}).get("maraga_mx")
 
 
 # ─── TIKTOK SHOP ──────────────────────────────────────────────────────────────
@@ -709,8 +727,9 @@ async def get_ventas_mes_actual() -> dict:
     tiktok_data  = results[3] if not isinstance(results[3], Exception) else None
     vtex_data    = results[4] if not isinstance(results[4], Exception) else None
 
-    # Amazon: fallback a caché si SP-API falla
-    amazon_data = amazon_live or get_amazon_cached(mes_str)
+    # Amazon y MaragaMX: fallback a caché de Tableau si la API directa falla
+    amazon_data    = amazon_live or get_amazon_cached(mes_str)
+    maraga_mx_data = vtex_data   or get_maraga_mx_cached(mes_str)
 
     walmart_error   = None
     ml_error        = None
@@ -742,9 +761,9 @@ async def get_ventas_mes_actual() -> dict:
         "mercadolibre":   ml_data,
         "ml_error":       ml_error,
         "amazon":         amazon_data,
-        "amazon_error":   amazon_error if not amazon_live else None,
+        "amazon_error":   amazon_error if not amazon_data else None,
         "tiktok":         tiktok_data,
         "tiktok_error":   tiktok_error,
-        "maraga_mx":      vtex_data,
-        "maraga_mx_error": maraga_mx_error,
+        "maraga_mx":      maraga_mx_data,
+        "maraga_mx_error": maraga_mx_error if not maraga_mx_data else None,
     }

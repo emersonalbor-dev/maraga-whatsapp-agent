@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from agent.brain import generar_respuesta
 from agent.memory import inicializar_db, guardar_mensaje, obtener_historial, obtener_conversaciones_recientes
 from agent.providers import obtener_proveedor
-from agent.ventas_api import get_ventas_mes_actual, set_amazon_cache
+from agent.ventas_api import get_ventas_mes_actual, set_amazon_cache, set_tableau_plat_cache
 
 load_dotenv()
 
@@ -60,8 +60,9 @@ async def health_check():
     return {"status": "ok", "agente": "Mara", "marca": "Maraga"}
 
 
-AMAZON_PUSH_SECRET  = os.getenv("AMAZON_PUSH_SECRET", "maraga-amazon-2026")
-WHATSAPP_BRIDGE_URL = os.getenv("WHATSAPP_BRIDGE_URL", "")  # URL del bridge QR
+AMAZON_PUSH_SECRET   = os.getenv("AMAZON_PUSH_SECRET", "maraga-amazon-2026")
+TABLEAU_PUSH_SECRET  = os.getenv("TABLEAU_PUSH_SECRET", "maraga-tableau-2026")
+WHATSAPP_BRIDGE_URL  = os.getenv("WHATSAPP_BRIDGE_URL", "")  # URL del bridge QR
 
 
 @app.post("/api/ventas/amazon-push")
@@ -87,6 +88,35 @@ async def amazon_push(request: Request):
         raise
     except Exception as e:
         logger.error(f"Error en /api/ventas/amazon-push: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/ventas/plataforma-push")
+async def plataforma_push(request: Request):
+    """
+    Recibe datos de Amazon/MaragaMX desde el cron de Claude Code (Tableau MCP).
+    Protegido con header X-Tableau-Secret.
+    """
+    auth = request.headers.get("X-Tableau-Secret", "")
+    if auth != TABLEAU_PUSH_SECRET:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    try:
+        body = await request.json()
+        mes = body.get("mes")
+        if not mes:
+            raise HTTPException(status_code=400, detail="Falta campo 'mes'")
+        pushed = []
+        for platform in ("amazon", "maraga_mx", "tiktok"):
+            data = body.get(platform)
+            if data:
+                set_tableau_plat_cache(mes, platform, data)
+                pushed.append(platform)
+        logger.info(f"Tableau push recibido: {mes} plataformas={pushed}")
+        return {"ok": True, "mes": mes, "plataformas": pushed}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en /api/ventas/plataforma-push: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
