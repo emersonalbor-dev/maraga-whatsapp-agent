@@ -1,6 +1,7 @@
 # agent/main.py — Servidor FastAPI + Webhook de WhatsApp para Mara (Maraga)
 
 import os
+import re
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
@@ -118,6 +119,28 @@ async def plataforma_push(request: Request):
     except Exception as e:
         logger.error(f"Error en /api/ventas/plataforma-push: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/ventas/plataforma-mes")
+async def plataforma_mes(mes: str = ""):
+    """
+    Retorna Amazon + MaragaMX desde caché Tableau para el mes solicitado (YYYY-MM).
+    El frontend llama esto cuando el usuario presiona Actualizar con un mes seleccionado.
+    """
+    if not mes or not re.match(r'^\d{4}-\d{2}$', mes):
+        raise HTTPException(status_code=400, detail="Parámetro 'mes' requerido en formato YYYY-MM")
+    from agent.ventas_api import get_amazon_cached, get_maraga_mx_cached
+    from datetime import datetime, timezone
+    amazon_data    = get_amazon_cached(mes)
+    maraga_mx_data = get_maraga_mx_cached(mes)
+    return JSONResponse(content={
+        "mes":          mes,
+        "amazon":       amazon_data,
+        "maraga_mx":    maraga_mx_data,
+        "tiktok":       None,
+        "fuente":       "tableau",
+        "actualizado_at": datetime.now(timezone.utc).isoformat(),
+    })
 
 
 @app.get("/api/auth/amazon")
