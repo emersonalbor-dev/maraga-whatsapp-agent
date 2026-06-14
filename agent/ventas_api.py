@@ -489,6 +489,10 @@ def set_tableau_plat_cache(mes: str, platform: str, data: dict) -> None:
     """Guarda datos de Tableau para una plataforma en memoria."""
     if mes not in _tableau_plat_cache:
         _tableau_plat_cache[mes] = {}
+    # Preservar top products si el nuevo push llega con lista vacía
+    existing = _tableau_plat_cache[mes].get(platform, {})
+    if not data.get("top") and existing.get("top"):
+        data = {**data, "top": existing["top"]}
     _tableau_plat_cache[mes][platform] = data
     logger.info(f"Tableau cache [{platform}] actualizado para {mes}: total={data.get('total')}")
 
