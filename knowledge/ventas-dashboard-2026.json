@@ -403,7 +403,7 @@
       "total_consolidado": 1235214.64
     },
     "2026-06": {
-      "label": "Junio 2026 (parcial — al 7 de junio, ventas brutas ML)",
+      "label": "Junio 2026 (parcial — al 17 de junio, ventas brutas ML)",
       "mercadolibre": {
         "total": 286135,
         "ordenes": 282,
@@ -475,48 +475,48 @@
         ]
       },
       "amazon": {
-        "total": 29345.52,
-        "ordenes": 54,
-        "unidades": 58,
-        "ticket_promedio": 543,
+        "total": 94553.81,
+        "ordenes": 113,
+        "unidades": 140,
+        "ticket_promedio": 837,
         "currency": "MXN",
-        "skus": 22,
-        "nota": "al 7 de junio",
+        "skus": 44,
+        "nota": "al 17 de junio",
         "top_productos": [
           {
-            "producto": "Esmeriladora 4-1/2 Pulgadas 800W",
-            "ingresos": 7034,
-            "unidades": 18
+            "producto": "MARAGA, Espuma Poliuretano de 340 ML, 20 Piezas",
+            "ingresos": 13950,
+            "unidades": 9
           },
           {
-            "producto": "Soldadora Inversora 200A 110/220V",
-            "ingresos": 4979,
-            "unidades": 1
+            "producto": "MARAGA, Clavadora Neumática Cn70rp de 1 3/4 a 2 3/4 pulgadas",
+            "ingresos": 13294.97,
+            "unidades": 5
           },
           {
-            "producto": "Cortadora Metal 2400W + Disco Diamante 14\"",
-            "ingresos": 3500,
-            "unidades": 1
+            "producto": "MARAGA, Esmeriladora 4-1/2 Pulgadas 800W",
+            "ingresos": 11873,
+            "unidades": 29
           },
           {
-            "producto": "Hacksaw Frame 12\" Lenox",
-            "ingresos": 1920,
-            "unidades": 4
-          },
-          {
-            "producto": "Sierra Cinta 44-7/8\" 10/14 TPI 3pz",
-            "ingresos": 1406,
+            "producto": "Maraga, Soldadora Inversora Portátil 110/220V, 200 Amp",
+            "ingresos": 9958,
             "unidades": 2
+          },
+          {
+            "producto": "MARAGA Soldadura Electrodo Revestido 6013 3/32\" 20Kg",
+            "ingresos": 6211.38,
+            "unidades": 5
           }
         ]
       },
-      "total_consolidado": 329941.96
+      "total_consolidado": 395150.25
     }
   },
   "resumen_2026": {
     "mejor_mes_ml": "Febrero 2026 — $1,257,004 MXN",
     "mejor_mes_walmart": "Mayo 2026 — $260,984 MXN",
-    "mejor_mes_amazon": "Junio 2026 — $29,345 MXN (parcial)",
+    "mejor_mes_amazon": "Junio 2026 — $94,553 MXN (parcial)",
     "producto_estrella_ml": "Careta Electrónica Free450 Sombra 11 (líder en enero, volumen alto constante)",
     "producto_estrella_walmart": "Pistola Clavos MARAGA CN70 (líder absoluto en enero y mayo)"
   }
