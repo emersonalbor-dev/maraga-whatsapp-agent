@@ -191,9 +191,9 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
     while True:
         data = await _ml_get("/orders/search", {
             "seller": ML_SELLER_ID,
-            "order.date_created.from": date_from,
-            "order.date_created.to": date_to,
-            "sort": "date_desc",   # date_asc devuelve menos resultados en paging.total
+            "order.date_closed.from": date_from,   # fecha de pago confirmado (= lo que muestra la plataforma)
+            "order.date_closed.to": date_to,
+            "sort": "date_desc",
             "limit": LIMIT,
             "offset": offset,
         })
@@ -211,13 +211,18 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
     unidades = 0
     canceladas = 0
 
+    REJECTED = {"rejected", "refunded", "charged_back", "null"}
     for order in all_orders:
         if order.get("status") == "cancelled":
             canceladas += 1
             continue
+        # Excluir órdenes donde todos los pagos fueron rechazados/reembolsados
+        pagos = order.get("payments", [])
+        if pagos and all(str(p.get("status", "")).lower() in REJECTED for p in pagos):
+            canceladas += 1
+            continue
         ordenes += 1
-        # Usar unit_price * qty para el total (igual que la plataforma ML muestra en "Ventas")
-        # total_amount incluye envío y descuentos de ML, lo que difiere del GMV de la plataforma
+        # Usar unit_price * qty (= GMV que muestra la plataforma ML en "Ventas")
         for item in order.get("order_items", []):
             titulo = item.get("item", {}).get("title", "Sin nombre")
             qty = item.get("quantity", 1)
