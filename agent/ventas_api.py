@@ -183,6 +183,13 @@ async def _ml_get(path: str, params: dict = {}) -> dict:
         return r.json()
 
 
+async def get_ml_fresh_token() -> str:
+    """Devuelve el access token de ML vigente, renovándolo si es necesario."""
+    if not _ml_access_token or time.time() > _ml_token_exp - 60:
+        await _refresh_ml_token()
+    return _ml_access_token
+
+
 async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
     LIMIT = 50
     offset = 0

@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from agent.brain import generar_respuesta
 from agent.memory import inicializar_db, guardar_mensaje, obtener_historial, obtener_conversaciones_recientes
 from agent.providers import obtener_proveedor
-from agent.ventas_api import get_ventas_mes_actual, set_amazon_cache, set_tableau_plat_cache
+from agent.ventas_api import get_ventas_mes_actual, set_amazon_cache, set_tableau_plat_cache, get_ml_fresh_token
 
 load_dotenv()
 
@@ -119,6 +119,20 @@ async def plataforma_push(request: Request):
     except Exception as e:
         logger.error(f"Error en /api/ventas/plataforma-push: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/ml/token")
+async def ml_token():
+    """
+    Devuelve el access token de MercadoLibre vigente (auto-renovado por Railway).
+    El frontend lo usa para hacer llamadas directas a la API de ML sin guardar client_secret.
+    """
+    from datetime import datetime, timezone
+    token = await get_ml_fresh_token()
+    return JSONResponse(content={
+        "access_token": token,
+        "actualizado_at": datetime.now(timezone.utc).isoformat(),
+    })
 
 
 @app.get("/api/ventas/plataforma-mes")
