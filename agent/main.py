@@ -154,22 +154,61 @@ async def ml_billing(mes: str):
 @app.get("/api/ventas/plataforma-mes")
 async def plataforma_mes(mes: str = ""):
     """
-    Retorna Amazon + MaragaMX desde caché Tableau para el mes solicitado (YYYY-MM).
-    El frontend llama esto cuando el usuario presiona Actualizar con un mes seleccionado.
+    Retorna Amazon + MaragaMX + TikTok para el mes solicitado (YYYY-MM).
+    Consulta VTEX y TikTok Shop en tiempo real; usa caché como fallback.
     """
     if not mes or not re.match(r'^\d{4}-\d{2}$', mes):
         raise HTTPException(status_code=400, detail="Parámetro 'mes' requerido en formato YYYY-MM")
-    from agent.ventas_api import get_amazon_cached, get_maraga_mx_cached
+    import asyncio
+    import calendar
     from datetime import datetime, timezone
+    from agent.ventas_api import (
+        get_amazon_cached, get_maraga_mx_cached,
+        fetch_vtex_mes, fetch_tiktok_mes,
+    )
+
+    now  = datetime.now(timezone.utc)
+    cur_mes = now.strftime("%Y-%m")
+    year, month = int(mes[:4]), int(mes[5:7])
+    inicio = datetime(year, month, 1, 0, 0, 0, tzinfo=timezone.utc)
+    if mes == cur_mes:
+        fin = now.replace(hour=23, minute=59, second=59, microsecond=0)
+    else:
+        last_day = calendar.monthrange(year, month)[1]
+        fin = datetime(year, month, last_day, 23, 59, 59, tzinfo=timezone.utc)
+
+    iso_from = inicio.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    iso_to   = fin.strftime("%Y-%m-%dT%H:%M:%S.999Z")
+    ts_from  = int(inicio.timestamp())
+    ts_to    = int(fin.timestamp())
+
+    vtex_result, tiktok_result = await asyncio.gather(
+        fetch_vtex_mes(iso_from, iso_to),
+        fetch_tiktok_mes(ts_from, ts_to),
+        return_exceptions=True,
+    )
+
     amazon_data    = get_amazon_cached(mes)
-    maraga_mx_data = get_maraga_mx_cached(mes)
+    maraga_mx_data = vtex_result   if not isinstance(vtex_result,   Exception) else get_maraga_mx_cached(mes)
+    tiktok_data    = tiktok_result if not isinstance(tiktok_result, Exception) else None
+
+    maraga_mx_error = str(vtex_result)   if isinstance(vtex_result,   Exception) else None
+    tiktok_error    = str(tiktok_result) if isinstance(tiktok_result, Exception) else None
+
+    if maraga_mx_error:
+        logger.warning(f"VTEX falló en plataforma-mes, usando caché: {maraga_mx_error}")
+    if tiktok_error:
+        logger.warning(f"TikTok falló en plataforma-mes: {tiktok_error}")
+
     return JSONResponse(content={
-        "mes":          mes,
-        "amazon":       amazon_data,
-        "maraga_mx":    maraga_mx_data,
-        "tiktok":       None,
-        "fuente":       "tableau",
-        "actualizado_at": datetime.now(timezone.utc).isoformat(),
+        "mes":              mes,
+        "amazon":           amazon_data,
+        "maraga_mx":        maraga_mx_data,
+        "maraga_mx_error":  maraga_mx_error if not maraga_mx_data else None,
+        "tiktok":           tiktok_data,
+        "tiktok_error":     tiktok_error,
+        "fuente":           "live",
+        "actualizado_at":   now.isoformat(),
     })
 
 
