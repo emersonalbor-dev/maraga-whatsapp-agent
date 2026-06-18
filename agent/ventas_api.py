@@ -216,7 +216,8 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
             canceladas += 1
             continue
         ordenes += 1
-        total += float(order.get("total_amount", 0))
+        # Usar unit_price * qty para el total (igual que la plataforma ML muestra en "Ventas")
+        # total_amount incluye envío y descuentos de ML, lo que difiere del GMV de la plataforma
         for item in order.get("order_items", []):
             titulo = item.get("item", {}).get("title", "Sin nombre")
             qty = item.get("quantity", 1)
@@ -224,10 +225,11 @@ async def fetch_ml_mes(date_from: str, date_to: str) -> dict:
             prod_agg[titulo]["ingresos"] += price
             prod_agg[titulo]["unidades"] += qty
             unidades += qty
+            total += price
 
     logger.info(
         f"ML resumen: {len(all_orders)} órdenes totales, "
-        f"{ordenes} activas=${total:.2f}, {canceladas} canceladas"
+        f"{ordenes} activas (unit_price*qty)=${total:.2f}, {canceladas} canceladas"
     )
 
     top5 = sorted(
