@@ -195,13 +195,13 @@ async def get_ml_fresh_token() -> str:
 _ml_billing_cache: dict = {}  # { "YYYY-MM": { ml:{}, mp:{}, publicidad:N, pages:N, _ts:N } }
 
 
-async def _ml_billing_fetch_group(period_key: str, group: str) -> tuple[dict, int]:
+async def _ml_billing_fetch_group(period_key: str, group: str):
     """Fetch y agrega todos los registros de billing de un grupo (ML o MP)."""
     acc: dict = defaultdict(float)
     pages = 0
     from_id = 0
 
-    def _proc(rec: dict) -> tuple[str, float] | None:
+    def _proc(rec: dict):
         ci  = rec.get("charge_info") or {}
         t   = ci.get("detail_sub_type") or ""
         amt = abs(ci.get("detail_amount") or 0)
