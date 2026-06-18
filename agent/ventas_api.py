@@ -196,12 +196,16 @@ _ml_billing_cache: dict = {}  # { "YYYY-MM": { ml:{}, mp:{}, publicidad:N, pages
 
 
 async def _ml_billing_fetch_group(period_key: str, group: str):
-    """Fetch y agrega todos los registros de billing de un grupo (ML o MP)."""
-    acc: dict = defaultdict(float)
+    """Fetch y agrega todos los registros de billing de un grupo (ML o MP).
+    Para ML también devuelve desglose por item (envíos CFF/CXD/BFF/BXD)."""
+    acc = defaultdict(float)
     pages = 0
     from_id = 0
+    # Solo para grupo ML: desglose de envíos por item_id
+    by_item = {}  # { item_id: {title, price, cff, cxd, bff, bxd, count_cff, count_cxd} }
+    ship_totals = {"cff": 0.0, "cxd": 0.0, "bff": 0.0, "bxd": 0.0, "count_cff": 0, "count_cxd": 0}
 
-    def _proc(rec: dict):
+    def _proc(rec):
         ci  = rec.get("charge_info") or {}
         t   = ci.get("detail_sub_type") or ""
         amt = abs(ci.get("detail_amount") or 0)
@@ -222,6 +226,36 @@ async def _ml_billing_fetch_group(period_key: str, group: str):
             if t == "CPOPC":                                    return ("servicios_mp", amt)
             if grp == "CHARGE":                                 return ("otros", amt)
         return None
+
+    def _proc_shipping(rec):
+        """Acumula desglose por item para la sección Envíos (solo ML)."""
+        ci = rec.get("charge_info") or {}
+        t  = ci.get("detail_sub_type") or ""
+        if t not in ("CFF", "CXD", "BFF", "BXD"):
+            return
+        item = ((rec.get("items_info") or [None])[0]) or {}
+        item_id = item.get("item_id")
+        if not item_id:
+            return
+        amt = abs(ci.get("detail_amount") or 0)
+        if item_id not in by_item:
+            by_item[item_id] = {
+                "title": item.get("item_title", ""),
+                "price": item.get("item_price", 0),
+                "cff": 0.0, "cxd": 0.0, "bff": 0.0, "bxd": 0.0,
+                "count_cff": 0, "count_cxd": 0,
+            }
+        b = by_item[item_id]
+        if t == "CFF":
+            b["cff"] += amt; b["count_cff"] += 1
+            ship_totals["cff"] += amt; ship_totals["count_cff"] += 1
+        elif t == "CXD":
+            b["cxd"] += amt; b["count_cxd"] += 1
+            ship_totals["cxd"] += amt; ship_totals["count_cxd"] += 1
+        elif t == "BFF":
+            b["bff"] += amt; ship_totals["bff"] += amt
+        elif t == "BXD":
+            b["bxd"] += amt; ship_totals["bxd"] += amt
 
     while True:
         token = await get_ml_fresh_token()
@@ -262,6 +296,8 @@ async def _ml_billing_fetch_group(period_key: str, group: str):
             kv = _proc(rec)
             if kv:
                 acc[kv[0]] += kv[1]
+            if group == "ML":
+                _proc_shipping(rec)
 
         if data.get("last_id") and len(results) > 0:
             from_id = data["last_id"]
@@ -269,7 +305,7 @@ async def _ml_billing_fetch_group(period_key: str, group: str):
         else:
             break
 
-    return dict(acc), pages
+    return dict(acc), pages, by_item, ship_totals
 
 
 async def fetch_ml_billing_aggregated(mes: str) -> dict:
@@ -284,9 +320,9 @@ async def fetch_ml_billing_aggregated(mes: str) -> dict:
 
     period_key = mes + "-01"
 
-    ml_acc, ml_pages = await _ml_billing_fetch_group(period_key, "ML")
+    ml_acc, ml_pages, by_item, ship_totals = await _ml_billing_fetch_group(period_key, "ML")
     await asyncio.sleep(5)  # pausa entre grupos ML y MP
-    mp_acc, _ = await _ml_billing_fetch_group(period_key, "MP")
+    mp_acc, _, _bi, _st = await _ml_billing_fetch_group(period_key, "MP")
 
     result = {
         "mes":        mes,
@@ -294,7 +330,11 @@ async def fetch_ml_billing_aggregated(mes: str) -> dict:
         "mp":         mp_acc,
         "publicidad": ml_acc.get("publicidad", 0),
         "pages":      ml_pages,
-        "_ts":        int(time.time() * 1000),  # ms para compatibilidad con Date.now()
+        "_ts":        int(time.time() * 1000),
+        "envios": {
+            "by_item": by_item,
+            "totals":  ship_totals,
+        },
     }
     _ml_billing_cache[mes] = result
     logger.info("ML billing %s cargado: %d pág. ML, publicidad=$%.0f", mes, ml_pages, result["publicidad"])
