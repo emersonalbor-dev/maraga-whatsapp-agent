@@ -8,6 +8,7 @@ import base64
 import hashlib
 import hmac as hmac_lib
 import logging
+import asyncio
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from typing import Optional
@@ -188,6 +189,116 @@ async def get_ml_fresh_token() -> str:
     if not _ml_access_token or time.time() > _ml_token_exp - 60:
         await _refresh_ml_token()
     return _ml_access_token
+
+
+# ─── ML BILLING (proxy server-side para evitar rate limit en browser) ──────────
+_ml_billing_cache: dict = {}  # { "YYYY-MM": { ml:{}, mp:{}, publicidad:N, pages:N, _ts:N } }
+
+
+async def _ml_billing_fetch_group(period_key: str, group: str) -> tuple[dict, int]:
+    """Fetch y agrega todos los registros de billing de un grupo (ML o MP)."""
+    acc: dict = defaultdict(float)
+    pages = 0
+    from_id = 0
+
+    def _proc(rec: dict) -> tuple[str, float] | None:
+        ci  = rec.get("charge_info") or {}
+        t   = ci.get("detail_sub_type") or ""
+        amt = abs(ci.get("detail_amount") or 0)
+        grp = ci.get("detail_type") or ""
+        if group == "ML":
+            if t == "CV":                                       return ("cv", amt)
+            if t == "CFF":                                      return ("envios_full", amt)
+            if t in ("CXD", "CDSD"):                           return ("envios_xd", amt)
+            if t in ("PADS", "CBADS"):                         return ("publicidad", amt)
+            if t in ("CFWA","CFCB","CFRS","CFPB","CFBA"):      return ("cfwa", amt)
+            if t == "CESM":                                     return ("cesm", amt)
+            if t == "BV":                                       return ("bv", amt)
+            if t in ("BFF", "BXD"):                            return ("benvios", amt)
+            if grp == "BONUS":                                  return ("bv", amt)
+            if grp == "CHARGE":                                 return ("otros", amt)
+        else:  # MP
+            if t == "CRIA":                                     return ("adelanto", amt)
+            if t == "CPOPC":                                    return ("servicios_mp", amt)
+            if grp == "CHARGE":                                 return ("otros", amt)
+        return None
+
+    while True:
+        token = await get_ml_fresh_token()
+        url = (
+            f"{ML_BASE}/billing/integration/periods/key/{period_key}"
+            f"/group/{group}/details"
+        )
+        params = {
+            "document_type": "BILL",
+            "limit": 1000,
+            "from_id": from_id,
+            "sort_by": "ID",
+            "order_by": "ASC",
+        }
+        retries = 0
+        while True:
+            async with httpx.AsyncClient(timeout=30) as c:
+                r = await c.get(url, params=params,
+                                headers={"Authorization": f"Bearer {token}"})
+            if r.status_code == 429:
+                wait = 30 * (retries + 1)
+                logger.warning("ML billing 429 (%s/%s), esperando %ss", group, period_key, wait)
+                await asyncio.sleep(wait)
+                retries += 1
+                token = await get_ml_fresh_token()
+                continue
+            if r.status_code == 401:
+                await _refresh_ml_token()
+                token = _ml_access_token
+                continue
+            r.raise_for_status()
+            break
+
+        data = r.json()
+        results = data.get("results") or []
+        pages += 1
+        for rec in results:
+            kv = _proc(rec)
+            if kv:
+                acc[kv[0]] += kv[1]
+
+        if data.get("last_id") and len(results) > 0:
+            from_id = data["last_id"]
+            await asyncio.sleep(10)  # pausa entre páginas
+        else:
+            break
+
+    return dict(acc), pages
+
+
+async def fetch_ml_billing_aggregated(mes: str) -> dict:
+    """Fetches, agrega y cachea billing de ML+MP para un mes YYYY-MM."""
+    cur_mes = datetime.now(timezone.utc).strftime("%Y-%m")
+
+    cached = _ml_billing_cache.get(mes)
+    if cached:
+        age_h = (time.time() * 1000 - cached.get("_ts", 0)) / 3_600_000
+        if mes < cur_mes or age_h < 1:
+            return cached
+
+    period_key = mes + "-01"
+
+    ml_acc, ml_pages = await _ml_billing_fetch_group(period_key, "ML")
+    await asyncio.sleep(5)  # pausa entre grupos ML y MP
+    mp_acc, _ = await _ml_billing_fetch_group(period_key, "MP")
+
+    result = {
+        "mes":        mes,
+        "ml":         ml_acc,
+        "mp":         mp_acc,
+        "publicidad": ml_acc.get("publicidad", 0),
+        "pages":      ml_pages,
+        "_ts":        int(time.time() * 1000),  # ms para compatibilidad con Date.now()
+    }
+    _ml_billing_cache[mes] = result
+    logger.info("ML billing %s cargado: %d pág. ML, publicidad=$%.0f", mes, ml_pages, result["publicidad"])
+    return result
 
 
 async def fetch_ml_mes(date_from: str, date_to: str) -> dict:

@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from agent.brain import generar_respuesta
 from agent.memory import inicializar_db, guardar_mensaje, obtener_historial, obtener_conversaciones_recientes
 from agent.providers import obtener_proveedor
-from agent.ventas_api import get_ventas_mes_actual, set_amazon_cache, set_tableau_plat_cache, get_ml_fresh_token
+from agent.ventas_api import get_ventas_mes_actual, set_amazon_cache, set_tableau_plat_cache, get_ml_fresh_token, fetch_ml_billing_aggregated
 
 load_dotenv()
 
@@ -133,6 +133,22 @@ async def ml_token():
         "access_token": token,
         "actualizado_at": datetime.now(timezone.utc).isoformat(),
     })
+
+
+@app.get("/api/ml/billing/{mes}")
+async def ml_billing(mes: str):
+    """
+    Fetches y agrega billing de ML+MP para el mes YYYY-MM desde Railway.
+    Evita que el browser haga llamadas directas al billing API de ML (rate limit muy estricto).
+    """
+    if not re.match(r'^\d{4}-\d{2}$', mes):
+        raise HTTPException(status_code=400, detail="mes debe ser YYYY-MM")
+    try:
+        data = await fetch_ml_billing_aggregated(mes)
+        return JSONResponse(content=data)
+    except Exception as e:
+        logger.error(f"Error en /api/ml/billing/{mes}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/ventas/plataforma-mes")
