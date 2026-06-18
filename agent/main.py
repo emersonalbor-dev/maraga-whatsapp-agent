@@ -163,7 +163,7 @@ async def plataforma_mes(mes: str = ""):
     import calendar
     from datetime import datetime, timezone
     from agent.ventas_api import (
-        get_amazon_cached, get_maraga_mx_cached,
+        get_amazon_cached, get_maraga_mx_cached, get_tiktok_cached,
         fetch_vtex_mes, fetch_tiktok_mes,
     )
 
@@ -190,7 +190,7 @@ async def plataforma_mes(mes: str = ""):
 
     amazon_data    = get_amazon_cached(mes)
     maraga_mx_data = vtex_result   if not isinstance(vtex_result,   Exception) else get_maraga_mx_cached(mes)
-    tiktok_data    = tiktok_result if not isinstance(tiktok_result, Exception) else None
+    tiktok_data    = tiktok_result if not isinstance(tiktok_result, Exception) else get_tiktok_cached(mes)
 
     maraga_mx_error = str(vtex_result)   if isinstance(vtex_result,   Exception) else None
     tiktok_error    = str(tiktok_result) if isinstance(tiktok_result, Exception) else None

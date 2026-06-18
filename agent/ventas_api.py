@@ -667,6 +667,11 @@ def get_maraga_mx_cached(mes: str) -> Optional[dict]:
     return _tableau_plat_cache.get(mes, {}).get("maraga_mx")
 
 
+def get_tiktok_cached(mes: str) -> Optional[dict]:
+    """Devuelve datos de TikTok Shop desde caché de Tableau."""
+    return _tableau_plat_cache.get(mes, {}).get("tiktok")
+
+
 # ─── TIKTOK SHOP ──────────────────────────────────────────────────────────────
 TTK_APP_KEY      = os.getenv("TIKTOK_APP_KEY", "")
 TTK_APP_SECRET   = os.getenv("TIKTOK_APP_SECRET", "")
